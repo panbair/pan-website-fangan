@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebInsight — DeepSeek AI 网站深度分析</title>
+
+<!-- Markdown 渲染 -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+</script>
+
+<!-- 代码高亮 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js">
+</script>
+
+<style>
+/* ============================================================
+   全局重置与变量
+   ============================================================ */
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #111118;
+  --bg-card: #16162b;
+  --bg-input: #1a1a2e;
+  --border: #252545;
+  --text-primary: #e8e8f0;
+  --text-secondary: #9898b8;
+  --text-muted: #6868a0;
+  --accent-1: #6366f1;
+  --accent-2: #8b5cf6;
+  --accent-3: #a78bfa;
+  --accent-4: #06b6d4;
+  --accent-5: #10b981;
+  --accent-6: #f59e0b;
+  --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --gradient-2: linear-gradient(135deg, #06b6d4 0%, #6366f1 100%);
+  --gradient-3: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --gradient-hero: linear-gradient(135deg, #0a0a1a 0%, #1a1050 30%, #0a2240 70%, #0a0a1a 100%);
+  --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+  --shadow-card: 0 2px 20px rgba(0,0,0,0.3);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+               'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* 背景动画粒子 */
+.bg-particles {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(99,102,241,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(6,182,212,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 60%);
+}
+
+.bg-grid {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0; opacity: 0.4;
+  background-image:
+    linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ============================================================
+   布局
+   ============================================================ */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+.header {
+  text-align: center;
+  padding: 50px 0 30px;
+}
+
+.logo-icon {
+  display: inline-block;
+  width: 64px; height: 64px;
+  background: var(--gradient-1);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-glow);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: var(--gradient-1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.header .subtitle {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   输入卡片
+   ============================================================ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+  transition: border-color var(--transition);
+}
+
+.card:hover { border-color: rgba(99,102,241,0.3); }
+
+/* 输入组 */
+.input-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .input-group { flex-direction: column; }
+}
+
+.input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.input-wrapper .icon {
+  position: absolute;
+  left: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="url"] {
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: all var(--transition);
+}
+
+input:focus {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+
+input::placeholder { color: var(--text-muted); }
+
+/* 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.btn-primary {
+  background: var(--gradient-1);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99,102,241,0.45);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-3);
+  color: var(--text-primary);
+}
+
+/* 加载动画 */
+.spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   状态指示
+   ============================================================ */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.active { background: var(--accent-5); animation: pulse-dot 1.5s ease-in-out infinite; }
+.status-dot.error { background: #ef4444; }
+.status-dot.done { background: var(--accent-5); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+/* ============================================================
+   网站信息概览卡片
+   ============================================================ */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  transition: all var(--transition);
+}
+
+.info-item:hover { border-color: var(--accent-1); }
+
+.info-item .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.info-item .value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* 技术标签 */
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tech-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(99,102,241,0.15);
+  color: var(--accent-3);
+  border: 1px solid rgba(99,102,241,0.25);
+}
+
+.tech-tag.cms { background: rgba(168,85,247,0.15); color: #c084fc; border-color: rgba(168,85,247,0.25); }
+.tech-tag.analytics { background: rgba(6,182,212,0.15); color: #22d3ee; border-color: rgba(6,182,212,0.25); }
+.tech-tag.server { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.25); }
+
+/* ============================================================
+   报告渲染区
+   ============================================================ */
+.report-wrapper {
+  display: none;
+}
+
+.report-wrapper.visible {
+  display: block;
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.report-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.report-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.report-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  line-height: 1.9;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+/* Markdown 内容样式 */
+.report-content h1 { font-size: 1.8rem; margin: 32px 0 16px; color: #e8e8f0; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.report-content h2 { font-size: 1.4rem; margin: 28px 0 12px; color: var(--accent-3); }
+.report-content h3 { font-size: 1.15rem; margin: 20px 0 10px; color: var(--accent-4); }
+.report-content h4 { font-size: 1rem; margin: 16px 0 8px; color: var(--text-primary); }
+.report-content p { margin: 10px 0; }
+.report-content ul, .report-content ol { margin: 10px 0; padding-left: 24px; }
+.report-content li { margin: 6px 0; }
+.report-content strong { color: #fff; font-weight: 700; }
+.report-content em { color: var(--accent-3); }
+.report-content blockquote {
+  border-left: 3px solid var(--accent-1);
+  padding: 12px 20px;
+  margin: 16px 0;
+  background: rgba(99,102,241,0.06);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary);
+}
+.report-content code {
+  background: var(--bg-input);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  color: var(--accent-4);
+}
+.report-content pre {
+  background: var(--bg-input);
+  padding: 20px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--border);
+}
+.report-content pre code {
+  background: none;
+  padding: 0;
+  color: var(--text-primary);
+}
+.report-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.9rem;
+}
+.report-content th {
+  background: var(--bg-input);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent-3);
+  border-bottom: 2px solid var(--border);
+}
+.report-content td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.report-content tr:hover td { background: rgba(99,102,241,0.04); }
+.report-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.report-content a { color: var(--accent-4); text-decoration: none; }
+.report-content a:hover { text-decoration: underline; }
+.report-content img { max-width: 100%; border-radius: var(--radius-sm); }
+
+@media (max-width: 768px) {
+  .report-content { padding: 24px; }
+  .report-content h1 { font-size: 1.4rem; }
+  .report-content h2 { font-size: 1.15rem; }
+}
+
+/* ============================================================
+   加载动画
+   ============================================================ */
+.loading-overlay {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-overlay.visible {
+  display: block;
+  animation: fadeInUp 0.3s ease;
+}
+
+.loading-wave {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.loading-wave span {
+  display: block;
+  width: 6px; height: 40px;
+  background: var(--gradient-1);
+  border-radius: 3px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.loading-wave span:nth-child(1) { animation-delay: 0s; }
+.loading-wave span:nth-child(2) { animation-delay: 0.1s; }
+.loading-wave span:nth-child(3) { animation-delay: 0.2s; }
+.loading-wave span:nth-child(4) { animation-delay: 0.3s; }
+.loading-wave span:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(1); opacity: 0.5; }
+  50% { transform: scaleY(2); opacity: 1; }
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   错误提示
+   ============================================================ */
+.error-box {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  display: none;
+}
+
+.error-box.visible {
+  display: block;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.footer {
+  text-align: center;
+  padding: 30px 0 50px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.footer a { color: var(--accent-3); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* ============================================================
+   提示卡片
+   ============================================================ */
+.tip-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin-top: 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tip-card .tip-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- 背景效果 -->
+<div class="bg-particles"></div>
+<div class="bg-grid"></div>
+
+<!-- ============================================================
+     Header
+     ============================================================ -->
+<div class="container">
+  <header class="header">
+    <div class="logo-icon">🔍</div>
+    <h1>WebInsight</h1>
+    <p class="subtitle">DeepSeek AI 驱动的网站深度分析工具</p>
+  </header>
+
+  <!-- ============================================================
+       输入卡片
+       ============================================================ -->
+  <div class="card">
+    <div class="input-group">
+      <div class="input-wrapper">
+        <span class="icon">🌐</span>
+        <input
+          type="url"
+          id="urlInput"
+          placeholder="输入网站 URL，例如 https://example.com"
+          autocomplete="url"
+        />
+      </div>
+      <button class="btn btn-primary" id="analyzeBtn" onclick="startAnalyzeStream()">
+        <span id="btnText">开始分析</span>
+        <span id="btnSpinner" style="display:none" class="spinner"></span>
+      </button>
+    </div>
+
+    <div class="input-group" style="margin-bottom:0">
+      <div class="input-wrapper">
+        <span class="icon">🔑</span>
+        <input
+          type="password"
+          id="apiKeyInput"
+          placeholder="DeepSeek API Key（sk-...）"
+          autocomplete="off"
+        />
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <span class="tip-icon">💡</span>
+      <span>
+        <strong>获取 API Key</strong>：前往 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 注册并创建 API Key。新用户有免费额度。
+      </span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       错误提示
+       ============================================================ -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- ============================================================
+       加载动画
+       ============================================================ -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <p class="loading-text" id="loadingText">正在抓取网站数据...</p>
+  </div>
+
+  <!-- ============================================================
+       网站信息概览
+       ============================================================ -->
+  <div class="info-grid" id="infoGrid" style="display:none"></div>
+
+  <!-- ============================================================
+       分析报告
+       ============================================================ -->
+  <div class="report-wrapper" id="reportWrapper">
+    <div class="report-header">
+      <h2>📊 分析报告</h2>
+      <div class="report-actions">
+        <button class="btn btn-secondary" onclick="startAnalyze()" style="font-size:0.8rem">📡 普通</button>
+	        <button class="btn btn-secondary" onclick="copyReport()" title="复制报告">
+          📋 复制
+        </button>
+        <button class="btn btn-secondary" onclick="downloadReport()" title="下载 Markdown">
+          📥 下载 .md
+        </button>
+      </div>
+    </div>
+    <div class="report-content" id="reportContent"></div>
+  </div>
+
+  <footer class="footer">
+    <p>Powered by <a href="https://platform.deepseek.com/" target="_blank" rel="noopener">DeepSeek AI</a>
+       &nbsp;·&nbsp; 分析结果仅供参考</p>
+  </footer>
+</div>
+<!--sk-f359f0e8601a487aa9e00e585ae33e52-->
+<!-- ============================================================
+     JavaScript
+     ============================================================ -->
+<script>
+// ============================================================
+//  状态管理
+// ============================================================
+let currentReport = '';
+let currentWebsiteData = null;
+
+const $ = (id) => document.getElementById(id);
+
+// 回车键触发分析
+$('urlInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') startAnalyze();
+});
+
+// 加载已保存的 API Key
+const savedKey = localStorage.getItem('deepseek_api_key');
+if (savedKey) $('apiKeyInput').value = savedKey;
+
+// ============================================================
+//  核心：分析流程
+// ============================================================
+async function startAnalyzeStream() {
+  const url = $('urlInput').value.trim();
+  const apiKey = $('apiKeyInput').value.trim();
+
+  if (!url) { showError('请输入网站 URL'); $('urlInput').focus(); return; }
+  if (!apiKey) { showError('请输入 DeepSeek API Key'); $('apiKeyInput').focus(); return; }
+  if (!apiKey.startsWith('sk-')) { showError('API Key 格式不正确，应以 sk- 开头'); return; }
+
+  localStorage.setItem('deepseek_api_key', apiKey);
+  hideError(); hideReport(); hideInfoGrid();
+  showLoading('正在抓取网站数据...');
+
+  const btn = $('analyzeBtn');
+  btn.disabled = true;
+  $('btnText').textContent = '分析中...';
+  $('btnSpinner').style.display = 'inline-block';
+
+  try {
+    updateLoadingText('正在抓取网站数据...');
+    const response = await fetch('/api/analyze/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, api_key: apiKey, model: 'deepseek-chat' })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || ('请求失败 (' + response.status + ')'));
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let reportText = '';
+    let metaReceived = false;
+
+    $('reportWrapper').classList.add('visible');
+    $('reportContent').innerHTML = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('event: done')) break;
+        if (line.startsWith('event: error')) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            throw new Error(data.error);
+          } catch(e) { if (e.message !== 'data: ') throw e; }
+        }
+        if (line.startsWith('data: ') && line.indexOf('"content"') > -1) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            reportText += data.content;
+            $('reportContent').innerHTML = marked.parse(reportText);
+            $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+          } catch(e) {}
+        }
+        if (line.startsWith('data: ') && line.indexOf('"title"') > -1) {
+          try {
+            const meta = JSON.parse(line.replace('data: ', ''));
+            currentWebsiteData = meta;
+            renderInfoGrid(meta);
+            metaReceived = true;
+            updateLoadingText('DeepSeek AI 正在实时分析中...');
+            hideLoading();
+          } catch(e) {}
+        }
+      }
+    }
+
+    currentReport = reportText;
+    if (!metaReceived) hideLoading();
+
+  } catch (err) {
+    showError(err.message);
+    hideLoading();
+  } finally {
+    btn.disabled = false;
+    $('btnText').textContent = '开始分析';
+    $('btnSpinner').style.display = 'none';
+  }
+}
+
+async function startAnalyze() {
+  const url = $('urlInput').value.trim();
+  const apiKey = $('apiKeyInput').value.trim();
+
+  // 校验
+  if (!url) {
+    showError('请输入网站 URL');
+    $('urlInput').focus();
+    return;
+  }
+  if (!apiKey) {
+    showError('请输入 DeepSeek API Key');
+    $('apiKeyInput').focus();
+    return;
+  }
+  if (!apiKey.startsWith('sk-')) {
+    showError('API Key 格式不正确，应以 sk- 开头');
+    return;
+  }
+
+  // 保存 API Key
+  localStorage.setItem('deepseek_api_key', apiKey);
+
+  // 重置 UI
+  hideError();
+  hideReport();
+  hideInfoGrid();
+  showLoading('正在抓取网站数据...');
+
+  // 禁用按钮
+  const btn = $('analyzeBtn');
+  btn.disabled = true;
+  $('btnText').textContent = '分析中...';
+  $('btnSpinner').style.display = 'inline-block';
+
+  try {
+    // 调用后端 API
+    updateLoadingText('正在抓取网站数据...');
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        api_key: apiKey,
+        model: 'deepseek-chat'
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || `请求失败 (${response.status})`);
+    }
+
+    updateLoadingText('🤖 DeepSeek AI 正在深度分析中，请耐心等待...（通常需要 20-60 秒）');
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || '分析失败');
+    }
+
+    // 显示信息概览
+    currentWebsiteData = data.website_data;
+    renderInfoGrid(data.website_data);
+
+    // 渲染报告
+    currentReport = data.report;
+    renderReport(data.report);
+
+    // 滚动到报告区域
+    setTimeout(() => {
+      $('reportWrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    hideLoading();
+    btn.disabled = false;
+    $('btnText').textContent = '开始分析';
+    $('btnSpinner').style.display = 'none';
+  }
+}
+
+// ============================================================
+//  UI 辅助函数
+// ============================================================
+function showLoading(text) {
+  $('loadingText').textContent = text;
+  $('loadingOverlay').classList.add('visible');
+}
+
+function updateLoadingText(text) {
+  $('loadingText').textContent = text;
+}
+
+function hideLoading() {
+  $('loadingOverlay').classList.remove('visible');
+}
+
+function showError(msg) {
+  const box = $('errorBox');
+  box.textContent = '⚠️ ' + msg;
+  box.classList.add('visible');
+}
+
+function hideError() {
+  $('errorBox').classList.remove('visible');
+}
+
+function hideReport() {
+  $('reportWrapper').classList.remove('visible');
+  $('reportContent').innerHTML = '';
+}
+
+function hideInfoGrid() {
+  $('infoGrid').style.display = 'none';
+  $('infoGrid').innerHTML = '';
+}
+
+// ============================================================
+//  信息概览渲染
+// ============================================================
+function renderInfoGrid(data) {
+  if (!data) return;
+
+  const grid = $('infoGrid');
+  grid.style.display = 'grid';
+
+  let items = '';
+
+  // 网站标题 + Meta描述
+  if (data.title) {
+    items += `<div class="info-item">
+      <div class="label">📌 网站标题</div>
+      <div class="value">${escapeHtml(data.title)}</div>
+      ${data.meta_description ? `<div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);line-height:1.4">${escapeHtml(data.meta_description.slice(0, 150))}${data.meta_description.length > 150 ? '...' : ''}</div>` : '<div style="margin-top:4px;font-size:0.72rem;color:#ef4444">缺少 Meta Description</div>'}
+    </div>`;
+  }
+
+  // 域名
+  if (data.domain) {
+    items += `<div class="info-item">
+      <div class="label">🌍 域名</div>
+      <div class="value">${escapeHtml(data.domain)}</div>
+    </div>`;
+  }
+
+  // OG 图片预览
+  if (data.og_image) {
+    items += `<div class="info-item">
+      <div class="label">🖼 Open Graph 图片</div>
+      <div style="margin-top:6px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
+        <img src="${escapeHtml(data.og_image)}" style="width:100%;max-height:120px;object-fit:cover" onerror="this.style.display='none'" />
+      </div>
+    </div>`;
+  } else if (data.og_title) {
+    items += `<div class="info-item">
+      <div class="label">🔖 Open Graph 标题</div>
+      <div class="value">${escapeHtml(data.og_title)}</div>
+    </div>`;
+  }
+
+  // 页面统计
+  if (data.page_stats) {
+    const stats = data.page_stats;
+    let statsHtml = `${stats.html_size_kb || 0} KB · ${stats.div_count || 0} div · ${stats.image_count || 0} 图片`;
+    if (stats.link_count !== undefined) statsHtml += ` · ${stats.link_count} 链接`;
+    if (stats.section_count) statsHtml += ` · ${stats.section_count} section`;
+    if (stats.form_count) statsHtml += ` · ${stats.form_count} 表单`;
+    if (stats.button_count) statsHtml += ` · ${stats.button_count} 按钮`;
+    if (stats.video_count) statsHtml += ` · ${stats.video_count} 视频`;
+    if (stats.canvas_count) statsHtml += ` · ${stats.canvas_count} Canvas`;
+    if (stats.svg_count) statsHtml += ` · ${stats.svg_count} SVG`;
+
+    // 模块数量（Playwright 特有）
+    if (data.module_count !== undefined) {
+      statsHtml += `<br><span style="font-size:0.78rem;color:var(--accent-4);font-weight:600">🧩 检测到 <strong>${data.module_count}</strong> 个页面模块</span>`;
+    }
+
+    // 数据来源
+    if (data.source) {
+      const sourceLabel = data.source === 'playwright'
+        ? '<span style="color:var(--accent-5)">🌐 Playwright 动态渲染</span>'
+        : '<span style="color:var(--text-muted)">📄 HTTP 静态抓取</span>';
+      statsHtml += ` · ${sourceLabel}`;
+    }
+
+    // 语义化标签
+    if (stats.semantic_tags_used && Object.keys(stats.semantic_tags_used).length > 0) {
+      const semTags = Object.entries(stats.semantic_tags_used).map(([k, v]) => `\`<${k}>\` ×${v}`).join(', ');
+      statsHtml += `<br><span style="font-size:0.72rem;color:var(--accent-4)">语义标签: ${semTags}</span>`;
+    } else {
+      statsHtml += `<br><span style="font-size:0.72rem;color:#ef4444">无语义化标签</span>`;
+    }
+
+    // 现代图片格式
+    if (stats.modern_image_formats) {
+      const mi = stats.modern_image_formats;
+      const formats = [];
+      if (mi.webp) formats.push(`WebP ×${mi.webp}`);
+      if (mi.avif) formats.push(`AVIF ×${mi.avif}`);
+      if (mi.svg) formats.push(`SVG ×${mi.svg}`);
+      if (formats.length > 0) {
+        statsHtml += `<br><span style="font-size:0.72rem;color:var(--accent-5)">图片格式: ${formats.join(', ')}</span>`;
+      }
+    }
+
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">📐 页面规模</div>
+      <div class="value" style="font-size:0.88rem">${statsHtml}</div>
+    </div>`;
+  }
+
+  // 技术栈
+  if (data.tech_stack) {
+    const tech = data.tech_stack;
+    let allTech = [];
+
+    // 构建工具
+    if (tech.build_tools && tech.build_tools.length > 0) {
+      allTech = allTech.concat(tech.build_tools.map(t => `<span class="tech-tag">🔧 ${t}</span>`));
+    }
+    // 前端框架
+    if (tech.frameworks && tech.frameworks.length > 0) {
+      allTech = allTech.concat(tech.frameworks.map(t => `<span class="tech-tag">⚛️ ${t}</span>`));
+    }
+    // JS 库
+    if (tech.libraries && tech.libraries.length > 0) {
+      allTech = allTech.concat(tech.libraries.map(t => `<span class="tech-tag">📚 ${t}</span>`));
+    }
+    // 动画库（高亮显示）
+    if (tech.animation_libraries && tech.animation_libraries.length > 0) {
+      allTech = allTech.concat(tech.animation_libraries.map(t => `<span class="tech-tag" style="background:rgba(34,197,94,0.2);color:#4ade80;border-color:rgba(34,197,94,0.35);font-weight:700">🎬 ${t}</span>`));
+    }
+    // CSS 框架
+    if (tech.css_framework && tech.css_framework.length > 0) {
+      allTech = allTech.concat(tech.css_framework.map(t => `<span class="tech-tag" style="background:rgba(236,72,153,0.15);color:#f472b6;border-color:rgba(236,72,153,0.25)">🎨 ${t}</span>`));
+    }
+    // CMS
+    if (tech.cms && tech.cms.length > 0) {
+      allTech = allTech.concat(tech.cms.map(t => `<span class="tech-tag cms">📦 ${t}</span>`));
+    }
+    // 分析工具
+    if (tech.analytics && tech.analytics.length > 0) {
+      allTech = allTech.concat(tech.analytics.map(t => `<span class="tech-tag analytics">📊 ${t}</span>`));
+    }
+    // CDN
+    if (tech.cdn && tech.cdn.length > 0) {
+      allTech = allTech.concat(tech.cdn.map(t => `<span class="tech-tag" style="background:rgba(6,182,212,0.15);color:#22d3ee;border-color:rgba(6,182,212,0.25)">⚡ ${t}</span>`));
+    }
+    // 服务器
+    if (tech.server && tech.server.length > 0) {
+      allTech = allTech.concat(tech.server.map(t => `<span class="tech-tag server">🖥 ${t}</span>`));
+    }
+    // 托管
+    if (tech.hosting && tech.hosting.length > 0) {
+      allTech = allTech.concat(tech.hosting.map(t => `<span class="tech-tag" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.25)">☁️ ${t}</span>`));
+    }
+    // 字体
+    if (tech.fonts && tech.fonts.length > 0) {
+      allTech = allTech.concat(tech.fonts.map(t => `<span class="tech-tag" style="background:rgba(139,92,246,0.15);color:#c084fc;border-color:rgba(139,92,246,0.25)">🔤 ${t}</span>`));
+    }
+
+    if (allTech.length > 0) {
+      items += `<div class="info-item" style="grid-column: 1 / -1">
+        <div class="label">🛠️ 检测到的技术栈 (${allTech.length}项)</div>
+        <div class="tech-tags">${allTech.join('')}</div>
+      </div>`;
+    }
+  }
+
+  // 🎬 运行时动画数据
+  if (data.runtime_animation && Object.keys(data.runtime_animation).length > 0) {
+    const ra = data.runtime_animation;
+    let animLines = [];
+    if (ra.gsap_version) animLines.push(`GSAP v${ra.gsap_version}`);
+    if (ra.plugins && ra.plugins.length > 0) animLines.push(`插件: ${ra.plugins.join(', ')}`);
+    if (ra.scrolltrigger_instances !== undefined) animLines.push(`ScrollTrigger: ${ra.scrolltrigger_instances} 个实例`);
+    if (ra.total_animated_elements !== undefined) animLines.push(`CSS Animation 元素: ${ra.total_animated_elements} 个`);
+    if (ra.total_transform_elements !== undefined) animLines.push(`Transform 元素: ${ra.total_transform_elements} 个`);
+    if (ra.total_will_change_elements !== undefined) animLines.push(`will-change 元素: ${ra.total_will_change_elements} 个`);
+    if (ra.lottie) animLines.push(`Lottie: ✓`);
+    if (ra.three_version) animLines.push(`Three.js r${ra.three_version}`);
+    if (ra.smooth_scroll) animLines.push(`平滑滚动: ✓`);
+
+    if (animLines.length > 0) {
+      items += `<div class="info-item" style="grid-column: 1 / -1">
+        <div class="label">🎬 运行时动画检测</div>
+        <div class="value" style="font-size:0.82rem;color:var(--accent-5)">${animLines.join(' | ')}</div>
+      </div>`;
+    }
+  }
+
+  // 🚀 Lighthouse 性能数据 (v2.0)
+  if (data.performance && !data.performance.error) {
+    const perf = data.performance;
+    let perfHtml = '';
+    if (perf.performance_score !== undefined) {
+      const pColor = perf.performance_score >= 90 ? 'var(--accent-5)' : perf.performance_score >= 50 ? 'var(--accent-6)' : '#ef4444';
+      perfHtml += `<span style="color:${pColor};font-weight:700">⚡ Performance: ${perf.performance_score}/100</span>`;
+    }
+    if (perf.seo_score !== undefined) perfHtml += ` · <span style="color:var(--accent-4)">🔍 SEO: ${perf.seo_score}/100</span>`;
+    if (perf.accessibility_score !== undefined) perfHtml += ` · <span style="color:var(--accent-3)">♿ A11y: ${perf.accessibility_score}/100</span>`;
+    if (perf.lcp) perfHtml += `<br><span style="font-size:0.72rem;color:var(--text-muted)">LCP: ${(perf.lcp/1000).toFixed(1)}s · CLS: ${(perf.cls||0).toFixed(3)} · TBT: ${perf.tbt?(perf.tbt/1000).toFixed(1)+'s':'N/A'}</span>`;
+    if (perf.non_composited_animations && perf.non_composited_animations.length > 0) {
+      perfHtml += `<br><span style="font-size:0.72rem;color:#ef4444">⚠ 非合成动画: ${perf.non_composited_animations.length} 个</span>`;
+    }
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🚀 Lighthouse 性能审计 (v2)</div>
+      <div class="value" style="font-size:0.82rem">${perfHtml}</div>
+    </div>`;
+  }
+
+  // ⚡ Web Vitals 实测数据 (v2.0)
+  if (data.web_vitals && Object.keys(data.web_vitals).length > 0) {
+    const wv = data.web_vitals;
+    let wvHtml = '';
+    if (wv.lcp) wvHtml += 'LCP: ' + (wv.lcp/1000).toFixed(2) + 's · ';
+    if (wv.fcp) wvHtml += 'FCP: ' + (wv.fcp/1000).toFixed(2) + 's · ';
+    if (wv.cls !== undefined) wvHtml += 'CLS: ' + Number(wv.cls).toFixed(3) + ' · ';
+    if (wv.long_tasks && wv.long_tasks.length > 0) wvHtml += 'Long Tasks: ' + wv.long_tasks.length + '个';
+    if (wvHtml) {
+      items += '<div class="info-item" style="grid-column: 1 / -1">' +
+        '<div class="label">⚡ Web Vitals 实测 (v2)</div>' +
+        '<div class="value" style="font-size:0.82rem;color:var(--accent-4)">' + wvHtml + '</div>' +
+        '</div>';
+    }
+  }
+
+  // 🎯 动画帧率 (v2.0)
+  if (data.animation_fps && data.animation_fps.fps) {
+    const fps = data.animation_fps.fps;
+    const fpsColor = fps >= 55 ? 'var(--accent-5)' : fps >= 30 ? 'var(--accent-6)' : '#ef4444';
+    items += '<div class="info-item" style="grid-column: 1 / -1">' +
+      '<div class="label">🎯 动画帧率 FPS (v2)</div>' +
+      '<div class="value" style="font-size:0.82rem;color:' + fpsColor + ';font-weight:700">' +
+      fps + ' FPS (' + data.animation_fps.total_frames + ' 帧 / ' + (data.animation_fps.duration_ms/1000).toFixed(1) + 's)' +
+      '</div></div>';
+  }
+
+  // 🔍 动画性能问题 (v2.0)
+  if (data.animation_audit && data.animation_audit.issues && data.animation_audit.issues.length > 0) {
+    const issues = data.animation_audit.issues;
+    let issueHtml = '';
+    issues.slice(0, 5).forEach(issue => {
+      const icon = issue.severity === 'high' ? '🔴' : '🟡';
+      issueHtml += icon + ' ' + issue.type.replace(/_/g, ' ') + ': ' + (issue.count || issue.element || issue.property || '') + '<br>';
+    });
+    items += '<div class="info-item" style="grid-column: 1 / -1">' +
+      '<div class="label">🔍 动画性能审计 (v2)</div>' +
+      '<div class="value" style="font-size:0.78rem;color:#fca5a5">' + issueHtml + '</div>' +
+      '</div>';
+  }
+
+  // 🎨 CSS @keyframes 提取 (v2.0)
+  if (data.css_keyframes_count && data.css_keyframes_count > 0) {
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🎨 CSS @keyframes 提取 (v2)</div>
+      <div class="value" style="font-size:0.82rem;color:var(--accent-4)">
+        从外部 CSS 文件中检测到 <strong>${data.css_keyframes_count}</strong> 个 @keyframes 动画定义
+      </div>
+    </div>`;
+  }
+
+  // HTTP 响应头（技术向展示）
+  if (data.response_headers) {
+    try {
+      const headers = JSON.parse(data.response_headers);
+      const headerKeys = Object.keys(headers);
+      if (headerKeys.length > 0) {
+        items += `<div class="info-item" style="grid-column: 1 / -1;max-height:200px;overflow-y:auto">
+          <div class="label">🔍 HTTP 响应头</div>
+          <div style="font-size:0.75rem;font-family:monospace;line-height:1.6;color:var(--text-muted);margin-top:4px">
+            ${headerKeys.map(k => `<span style="color:var(--accent-4)">${escapeHtml(k)}</span>: ${escapeHtml(String(headers[k]).slice(0, 100))}`).join('<br>')}
+          </div>
+        </div>`;
+      }
+    } catch(e) {}
+  }
+
+  grid.innerHTML = items;
+  setTimeout(() => {
+    grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+// ============================================================
+//  报告渲染
+// ============================================================
+function renderReport(markdown) {
+  const wrapper = $('reportWrapper');
+  const content = $('reportContent');
+
+  // 配置 marked 以支持代码高亮
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+  });
+
+  // 使用 marked 渲染 Markdown
+  content.innerHTML = marked.parse(markdown);
+
+  // 代码语法高亮
+  content.querySelectorAll('pre code').forEach((block) => {
+    hljs.highlightElement(block);
+  });
+
+  // 表格响应式包裹
+  content.querySelectorAll('table').forEach((table) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'overflow-x: auto; -webkit-overflow-scrolling: touch;';
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+
+  // 优化链接在新窗口打开
+  content.querySelectorAll('a[href^="http"]').forEach((link) => {
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+  });
+
+  wrapper.classList.add('visible');
+}
+
+// ============================================================
+//  报告操作
+// ============================================================
+function copyReport() {
+  if (!currentReport) return;
+
+  // 获取纯文本
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = $('reportContent').innerHTML;
+  const plainText = tempDiv.textContent || tempDiv.innerText;
+
+  navigator.clipboard.writeText(plainText).then(() => {
+    showToast('✅ 报告已复制到剪贴板');
+  }).catch(() => {
+    showToast('❌ 复制失败，请手动复制');
+  });
+}
+
+function downloadReport() {
+  if (!currentReport) return;
+
+  const blob = new Blob([currentReport], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const domain = currentWebsiteData?.domain || 'website';
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `analysis-${domain}-${timestamp}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('📥 报告已下载');
+}
+
+// ============================================================
+//  Toast 提示
+// ============================================================
+function showToast(msg) {
+  let toast = document.querySelector('.toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.cssText = `
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-card); color: var(--text-primary);
+      padding: 12px 24px; border-radius: 30px; font-size: 0.9rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      z-index: 9999;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = msg;
+  toast.style.animation = 'none';
+  toast.offsetHeight; // reflow
+  toast.style.animation = 'toastIn 0.3s ease, toastOut 0.3s ease 2s forwards';
+}
+
+// 动态注入 toast 动画
+const toastStyle = document.createElement('style');
+toastStyle.textContent = `
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(-50%) translateY(0); } to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+`;
+document.head.appendChild(toastStyle);
+
+// ============================================================
+//  工具函数
+// ============================================================
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

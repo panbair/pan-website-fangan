@@ -1,0 +1,41 @@
+# ============================================================
+#  🌐 WebInsight v2 — 网站深度分析工具 依赖
+# ============================================================
+#  安装: pip install -r requirements.txt
+#  Python >= 3.9
+# ============================================================
+
+# Web 框架
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# HTTP 请求（网站抓取）
+httpx>=0.25.0
+
+# AI 调用（OpenAI 兼容协议 → DeepSeek）
+openai>=1.6.0
+
+# Playwright 浏览器引擎（动态渲染 + 截图 + 模块解析）
+# 安装后需执行: playwright install chromium
+playwright>=1.40.0
+
+# Pydantic（FastAPI 数据模型）
+pydantic>=2.5.0
+
+# ============================================================
+#  v2.0 新增
+# ============================================================
+
+# Wappalyzer — 技术栈检测 (3000+ 专业规则)
+# GitHub: https://github.com/chorsley/python-Wappalyzer
+python-Wappalyzer>=1.2.0
+
+# ============================================================
+#  Node.js sidecar 依赖 (需手动安装)
+# ============================================================
+#  用于 CSS @keyframes 解析:
+#    npm install css-tree
+#
+#  用于 Lighthouse 性能审计:
+#    npm install lighthouse chrome-launcher
+# ============================================================
