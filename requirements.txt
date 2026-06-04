@@ -12,6 +12,9 @@ uvicorn[standard]>=0.24.0
 # HTTP 请求（网站抓取）
 httpx>=0.25.0
 
+# Redis（分布式限流）
+redis>=5.0.0
+
 # AI 调用（OpenAI 兼容协议 → DeepSeek）
 openai>=1.6.0
 

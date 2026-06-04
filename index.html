@@ -318,6 +318,28 @@ input::placeholder { color: var(--text-muted); }
   word-break: break-all;
 }
 
+.visual-score-wrap {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.visual-radar-canvas {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 1;
+  background: radial-gradient(circle at 50% 45%, rgba(99, 102, 241, 0.12), transparent 70%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+@media (max-width: 768px) {
+  .visual-score-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 技术标签 */
 .tech-tags {
   display: flex;
@@ -544,6 +566,34 @@ input::placeholder { color: var(--text-muted); }
 .footer a { color: var(--accent-3); text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
 
+.local-report-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.local-report-modal.visible {
+  display: flex;
+}
+
+.local-report-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.local-report-modal-content {
+  position: relative;
+  width: min(920px, calc(100vw - 28px));
+  max-height: min(80vh, 760px);
+  overflow: auto;
+  padding: 20px;
+}
+
 /* ============================================================
    提示卡片
    ============================================================ */
@@ -563,6 +613,18 @@ input::placeholder { color: var(--text-muted); }
 .tip-card .tip-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+/* 屏幕阅读器可见，视觉隐藏 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 </style>
 </head>
@@ -588,6 +650,7 @@ input::placeholder { color: var(--text-muted); }
   <div class="card">
     <div class="input-group">
       <div class="input-wrapper">
+        <label class="sr-only" for="urlInput">网站 URL</label>
         <span class="icon">🌐</span>
         <input
           type="url"
@@ -596,28 +659,55 @@ input::placeholder { color: var(--text-muted); }
           autocomplete="url"
         />
       </div>
-      <button class="btn btn-primary" id="analyzeBtn" onclick="startAnalyzeStream()">
+      <button class="btn btn-primary" id="analyzeBtn" onclick="startAnalyze()">
         <span id="btnText">开始分析</span>
         <span id="btnSpinner" style="display:none" class="spinner"></span>
+      </button>
+      <button class="btn btn-secondary" onclick="openLocalReportPanel()" title="查看本地保存报告" style="padding:14px 16px">
+        🗂 报告列表
       </button>
     </div>
 
     <div class="input-group" style="margin-bottom:0">
       <div class="input-wrapper">
+        <label class="sr-only" for="apiKeyInput">DeepSeek API Key</label>
         <span class="icon">🔑</span>
         <input
           type="password"
           id="apiKeyInput"
-          placeholder="DeepSeek API Key（sk-...）"
+          placeholder="可选：DeepSeek API Key（留空则使用服务端配置）"
           autocomplete="off"
         />
       </div>
     </div>
 
+    <div class="input-group" style="gap:12px;align-items:center;margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
+        <input type="checkbox" id="visionEnabled" checked />
+        启用视觉模型（截图分析）
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
+        交互模拟级别
+        <select id="interactionLevel" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 8px">
+          <option value="standard" selected>standard</option>
+          <option value="basic">basic</option>
+          <option value="off">off</option>
+        </select>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
+        视觉截图数
+        <input id="visionMaxImages" type="number" min="1" max="8" value="3" style="width:56px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 6px" />
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
+        <input type="checkbox" id="clickWhitelist" checked />
+        点击白名单
+      </label>
+    </div>
+
     <div class="tip-card">
       <span class="tip-icon">💡</span>
       <span>
-        <strong>获取 API Key</strong>：前往 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 注册并创建 API Key。新用户有免费额度。
+        <strong>API Key 使用说明</strong>：可在此输入临时 Key；若留空，后端会尝试使用服务端环境变量 <code>DEEPSEEK_API_KEY</code>。
       </span>
     </div>
   </div>
@@ -650,6 +740,13 @@ input::placeholder { color: var(--text-muted); }
       <h2>📊 分析报告</h2>
       <div class="report-actions">
         <button class="btn btn-secondary" onclick="startAnalyze()" style="font-size:0.8rem">📡 普通</button>
+        <button class="btn btn-secondary" onclick="startDebugAnalyze()" style="font-size:0.8rem">🧪 Debug</button>
+	        <button class="btn btn-secondary" onclick="saveReportToLocal()" title="保存到本地 IndexedDB">
+          💾 保存报告
+        </button>
+	        <button class="btn btn-secondary" onclick="downloadAlertSummary()" title="下载变化告警 JSON">
+          🚨 下载告警
+        </button>
 	        <button class="btn btn-secondary" onclick="copyReport()" title="复制报告">
           📋 复制
         </button>
@@ -661,12 +758,53 @@ input::placeholder { color: var(--text-muted); }
     <div class="report-content" id="reportContent"></div>
   </div>
 
+  <div class="report-wrapper" id="debugWrapper" style="display:none">
+    <div class="report-header">
+      <h2>🧪 Debug 证据面板</h2>
+    </div>
+    <div class="report-content" id="debugContent"></div>
+  </div>
+
+  <!-- ============================================================
+       历史记录面板
+       ============================================================ -->
+  <div style="margin-top:24px" id="historySection">
+    <div class="card" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="color:var(--text-secondary);font-size:0.95rem;margin:0">📚 分析历史记录</h3>
+        <button onclick="loadHistory()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🔄 刷新</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input id="historyAdminToken" type="password" placeholder="可选：admin token（用于受保护历史接口）" style="flex:1;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem" autocomplete="off" />
+      </div>
+      <div id="historyList" style="font-size:0.82rem;color:var(--text-muted)">点击"刷新"加载历史记录</div>
+    </div>
+  </div>
+
   <footer class="footer">
     <p>Powered by <a href="https://platform.deepseek.com/" target="_blank" rel="noopener">DeepSeek AI</a>
        &nbsp;·&nbsp; 分析结果仅供参考</p>
   </footer>
 </div>
-<!--sk-f359f0e8601a487aa9e00e585ae33e52-->
+
+<div id="localReportModal" class="local-report-modal" aria-hidden="true">
+  <div class="local-report-modal-backdrop" onclick="closeLocalReportPanel()"></div>
+  <div class="local-report-modal-content card" role="dialog" aria-modal="true" aria-label="本地保存报告列表">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="color:var(--text-secondary);font-size:0.95rem;margin:0">💾 本地保存报告（IndexedDB）</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="clearAllLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🧹 清空</button>
+        <button onclick="loadLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🔄 刷新</button>
+        <button onclick="closeLocalReportPanel()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">✖ 关闭</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input id="localReportKeyword" type="text" placeholder="按域名/标题搜索本地报告" style="flex:1;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem" />
+    </div>
+    <div id="localReportList" style="font-size:0.82rem;color:var(--text-muted)">当前暂无本地保存报告</div>
+  </div>
+</div>
+
 <!-- ============================================================
      JavaScript
      ============================================================ -->
@@ -674,19 +812,273 @@ input::placeholder { color: var(--text-muted); }
 // ============================================================
 //  状态管理
 // ============================================================
+<!--sk-9f0e8601a487aa9e00e585ae33e52 假的-->
 let currentReport = '';
 let currentWebsiteData = null;
+let currentAlertSummary = null;
+let highlightedLocalReportId = null;
+const LOCAL_REPORT_DB = 'webinsight-local-reports';
+const LOCAL_REPORT_STORE = 'reports';
 
 const $ = (id) => document.getElementById(id);
+
+function openLocalReportDb() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error('当前浏览器不支持 IndexedDB'));
+      return;
+    }
+    const request = window.indexedDB.open(LOCAL_REPORT_DB, 1);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(LOCAL_REPORT_STORE)) {
+        const store = db.createObjectStore(LOCAL_REPORT_STORE, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('saved_at', 'saved_at', { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('IndexedDB 打开失败'));
+  });
+}
+
+function toggleLocalReportPanel() {
+  const modal = $('localReportModal');
+  if (!modal) return;
+  if (modal.classList.contains('visible')) {
+    closeLocalReportPanel();
+    return;
+  }
+  openLocalReportPanel();
+}
+
+function openLocalReportPanel() {
+  const modal = $('localReportModal');
+  if (!modal) return;
+  modal.classList.add('visible');
+  modal.setAttribute('aria-hidden', 'false');
+  loadLocalReports();
+}
+
+function closeLocalReportPanel() {
+  const modal = $('localReportModal');
+  if (!modal) return;
+  modal.classList.remove('visible');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+async function saveReportToLocal() {
+  if (!currentReport || !currentReport.trim()) {
+    showToast('⚠️ 当前没有可保存的报告');
+    return;
+  }
+  try {
+    const db = await openLocalReportDb();
+    let savedId = null;
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_REPORT_STORE], 'readwrite');
+      const store = tx.objectStore(LOCAL_REPORT_STORE);
+      const now = new Date();
+      const req = store.add({
+        title: currentWebsiteData?.title || '',
+        domain: currentWebsiteData?.domain || '',
+        saved_at: now.toISOString(),
+        saved_at_ts: now.getTime(),
+        report: currentReport,
+        website_data: currentWebsiteData || null,
+      });
+      req.onsuccess = () => {
+        savedId = Number(req.result);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('保存失败'));
+      tx.onabort = () => reject(tx.error || new Error('保存被中止'));
+    });
+    db.close();
+    highlightedLocalReportId = savedId;
+    openLocalReportPanel();
+    await loadLocalReports();
+    showToast('💾 已保存到本地 IndexedDB');
+  } catch (err) {
+    showToast('❌ 保存失败: ' + (err.message || err));
+  }
+}
+
+async function loadLocalReports() {
+  const list = $('localReportList');
+  if (!list) return;
+  const keyword = (($('localReportKeyword')?.value || '').trim().toLowerCase());
+  list.innerHTML = '<span style="color:var(--text-muted)">加载中...</span>';
+  try {
+    const db = await openLocalReportDb();
+    const rows = await new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_REPORT_STORE], 'readonly');
+      const store = tx.objectStore(LOCAL_REPORT_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error || new Error('读取失败'));
+    });
+    db.close();
+
+    rows.sort((a, b) => Number(b.saved_at_ts || 0) - Number(a.saved_at_ts || 0));
+    const filtered = keyword
+      ? rows.filter((item) => {
+          const domain = String(item.domain || '').toLowerCase();
+          const title = String(item.title || '').toLowerCase();
+          return domain.includes(keyword) || title.includes(keyword);
+        })
+      : rows;
+
+    if (!filtered.length) {
+      list.innerHTML = '<span style="color:var(--text-muted)">当前暂无本地保存报告</span>';
+      return;
+    }
+
+    list.innerHTML = filtered.map((item) => {
+      const name = item.domain || item.title || '未命名报告';
+      const time = item.saved_at ? new Date(item.saved_at).toLocaleString() : '未知时间';
+      const preview = (item.report || '').replace(/\s+/g, ' ').slice(0, 110);
+      const isHighlighted = Number(item.id) === Number(highlightedLocalReportId);
+      return `
+        <div data-local-report-id="${Number(item.id)}" style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;${isHighlighted ? 'background:rgba(16,185,129,0.12);border-radius:8px;padding:10px 8px;' : ''}">
+          <div style="flex:1;cursor:pointer" onclick="loadLocalReportItem(${Number(item.id)})">
+            <div style="color:var(--text-primary);font-weight:600;margin-bottom:3px">${escapeHtml(name)}${isHighlighted ? '<span style="margin-left:8px;font-size:0.68rem;color:var(--accent-5)">刚保存</span>' : ''}</div>
+            <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">${escapeHtml(time)}</div>
+            <div style="color:var(--text-secondary);font-size:0.75rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:600px">${escapeHtml(preview)}${preview.length >= 110 ? '…' : ''}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="event.stopPropagation();loadLocalReportItem(${Number(item.id)})" style="background:none;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">查看</button>
+            <button onclick="event.stopPropagation();deleteLocalReportItem(${Number(item.id)})" style="background:none;border:1px solid var(--border);color:#fca5a5;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">删除</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    if (highlightedLocalReportId) {
+      const focusEl = list.querySelector(`[data-local-report-id="${Number(highlightedLocalReportId)}"]`);
+      if (focusEl && focusEl.scrollIntoView) {
+        focusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  } catch (err) {
+    list.innerHTML = `<span style="color:#f87171">加载失败: ${escapeHtml(err.message || String(err))}</span>`;
+  }
+}
+
+async function clearAllLocalReports() {
+  if (!confirm('确定清空全部本地保存报告吗？此操作不可恢复。')) return;
+  try {
+    const db = await openLocalReportDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_REPORT_STORE], 'readwrite');
+      tx.objectStore(LOCAL_REPORT_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('清空失败'));
+      tx.onabort = () => reject(tx.error || new Error('清空被中止'));
+    });
+    db.close();
+    await loadLocalReports();
+    showToast('🧹 本地报告已清空');
+  } catch (err) {
+    showToast('❌ 清空失败: ' + (err.message || err));
+  }
+}
+
+async function loadLocalReportItem(id) {
+  try {
+    const db = await openLocalReportDb();
+    const row = await new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_REPORT_STORE], 'readonly');
+      const store = tx.objectStore(LOCAL_REPORT_STORE);
+      const req = store.get(Number(id));
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error || new Error('读取失败'));
+    });
+    db.close();
+
+    if (!row) {
+      showToast('⚠️ 报告不存在或已删除');
+      await loadLocalReports();
+      return;
+    }
+
+    currentReport = row.report || '';
+    currentWebsiteData = row.website_data || null;
+    if (currentWebsiteData) renderInfoGrid(currentWebsiteData);
+    renderReport(currentReport);
+    $('reportWrapper').classList.add('visible');
+    $('reportWrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('📄 已加载本地报告');
+  } catch (err) {
+    showToast('❌ 加载失败: ' + (err.message || err));
+  }
+}
+
+async function deleteLocalReportItem(id) {
+  if (!confirm('确定删除这条本地报告吗？')) return;
+  try {
+    const db = await openLocalReportDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction([LOCAL_REPORT_STORE], 'readwrite');
+      tx.objectStore(LOCAL_REPORT_STORE).delete(Number(id));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('删除失败'));
+      tx.onabort = () => reject(tx.error || new Error('删除被中止'));
+    });
+    db.close();
+    await loadLocalReports();
+    showToast('🗑 已删除本地报告');
+  } catch (err) {
+    showToast('❌ 删除失败: ' + (err.message || err));
+  }
+}
 
 // 回车键触发分析
 $('urlInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') startAnalyze();
 });
 
-// 加载已保存的 API Key
-const savedKey = localStorage.getItem('deepseek_api_key');
-if (savedKey) $('apiKeyInput').value = savedKey;
+const savedVision = localStorage.getItem('webinsight_enable_vision');
+if (savedVision !== null) $('visionEnabled').checked = savedVision === '1';
+
+const savedInteractionLevel = localStorage.getItem('webinsight_interaction_level');
+if (savedInteractionLevel) $('interactionLevel').value = savedInteractionLevel;
+
+const savedVisionMaxImages = localStorage.getItem('webinsight_vision_max_images');
+if (savedVisionMaxImages) $('visionMaxImages').value = savedVisionMaxImages;
+
+const savedClickWhitelist = localStorage.getItem('webinsight_click_whitelist');
+if (savedClickWhitelist !== null) $('clickWhitelist').checked = savedClickWhitelist === '1';
+
+function getAnalyzeOptions() {
+  const enableVision = !!$('visionEnabled').checked;
+  const interactionLevel = $('interactionLevel').value || 'standard';
+  const visionMaxImages = Math.max(1, Math.min(8, Number($('visionMaxImages').value || 3)));
+  const clickWhitelist = !!$('clickWhitelist').checked;
+  localStorage.setItem('webinsight_enable_vision', enableVision ? '1' : '0');
+  localStorage.setItem('webinsight_interaction_level', interactionLevel);
+  localStorage.setItem('webinsight_vision_max_images', String(visionMaxImages));
+  localStorage.setItem('webinsight_click_whitelist', clickWhitelist ? '1' : '0');
+  return {
+    enable_vision: enableVision,
+    interaction_level: interactionLevel,
+    vision_max_images: visionMaxImages,
+    click_whitelist: clickWhitelist,
+  };
+}
+
+function getAdminHeaders() {
+  const token = ($('historyAdminToken')?.value || '').trim();
+  return token ? { 'X-Admin-Token': token } : {};
+}
+
+function getFriendlyApiError(status, detail) {
+  const msg = (detail || '').toString().trim();
+  if (status === 401) return msg || '认证失败：API Key 无效或无权限，请检查后重试';
+  if (status === 402) return msg || '账户额度不足：请检查 DeepSeek 计费与配额';
+  if (status === 429) return msg || '请求过于频繁：请稍后再试';
+  if (status === 400) return msg || '请求参数错误，请检查 URL / 参数后重试';
+  if (status >= 500) return msg || '服务暂时异常，请稍后重试';
+  return msg || ('请求失败 (' + status + ')');
+}
 
 // ============================================================
 //  核心：分析流程
@@ -694,13 +1086,11 @@ if (savedKey) $('apiKeyInput').value = savedKey;
 async function startAnalyzeStream() {
   const url = $('urlInput').value.trim();
   const apiKey = $('apiKeyInput').value.trim();
+  const opts = getAnalyzeOptions();
 
   if (!url) { showError('请输入网站 URL'); $('urlInput').focus(); return; }
-  if (!apiKey) { showError('请输入 DeepSeek API Key'); $('apiKeyInput').focus(); return; }
-  if (!apiKey.startsWith('sk-')) { showError('API Key 格式不正确，应以 sk- 开头'); return; }
-
-  localStorage.setItem('deepseek_api_key', apiKey);
-  hideError(); hideReport(); hideInfoGrid();
+  if (apiKey && !apiKey.startsWith('sk-')) { showError('API Key 格式不正确，应以 sk- 开头'); return; }
+  hideError(); hideReport(); hideInfoGrid(); hideDebugPanel();
   showLoading('正在抓取网站数据...');
 
   const btn = $('analyzeBtn');
@@ -713,12 +1103,20 @@ async function startAnalyzeStream() {
     const response = await fetch('/api/analyze/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, api_key: apiKey, model: 'deepseek-chat' })
+      body: JSON.stringify({
+        url,
+        api_key: apiKey,
+        model: 'deepseek-chat',
+        enable_vision: opts.enable_vision,
+        interaction_level: opts.interaction_level,
+        vision_max_images: opts.vision_max_images,
+        click_whitelist: opts.click_whitelist,
+      })
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.detail || ('请求失败 (' + response.status + ')'));
+      throw new Error(getFriendlyApiError(response.status, errData.detail));
     }
 
     const reader = response.body.getReader();
@@ -783,6 +1181,7 @@ async function startAnalyzeStream() {
 async function startAnalyze() {
   const url = $('urlInput').value.trim();
   const apiKey = $('apiKeyInput').value.trim();
+  const opts = getAnalyzeOptions();
 
   // 校验
   if (!url) {
@@ -790,23 +1189,16 @@ async function startAnalyze() {
     $('urlInput').focus();
     return;
   }
-  if (!apiKey) {
-    showError('请输入 DeepSeek API Key');
-    $('apiKeyInput').focus();
-    return;
-  }
-  if (!apiKey.startsWith('sk-')) {
+  if (apiKey && !apiKey.startsWith('sk-')) {
     showError('API Key 格式不正确，应以 sk- 开头');
     return;
   }
-
-  // 保存 API Key
-  localStorage.setItem('deepseek_api_key', apiKey);
 
   // 重置 UI
   hideError();
   hideReport();
   hideInfoGrid();
+  hideDebugPanel();
   showLoading('正在抓取网站数据...');
 
   // 禁用按钮
@@ -824,13 +1216,17 @@ async function startAnalyze() {
       body: JSON.stringify({
         url: url,
         api_key: apiKey,
-        model: 'deepseek-chat'
+        model: 'deepseek-chat',
+        enable_vision: opts.enable_vision,
+        interaction_level: opts.interaction_level,
+        vision_max_images: opts.vision_max_images,
+        click_whitelist: opts.click_whitelist,
       })
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.detail || `请求失败 (${response.status})`);
+      throw new Error(getFriendlyApiError(response.status, errData.detail));
     }
 
     updateLoadingText('🤖 DeepSeek AI 正在深度分析中，请耐心等待...（通常需要 20-60 秒）');
@@ -895,9 +1291,110 @@ function hideReport() {
   $('reportContent').innerHTML = '';
 }
 
+function hideDebugPanel() {
+  $('debugWrapper').style.display = 'none';
+  $('debugWrapper').classList.remove('visible');
+  $('debugContent').innerHTML = '';
+}
+
 function hideInfoGrid() {
   $('infoGrid').style.display = 'none';
   $('infoGrid').innerHTML = '';
+  currentAlertSummary = null;
+}
+
+async function startDebugAnalyze() {
+  const url = $('urlInput').value.trim();
+  const apiKey = $('apiKeyInput').value.trim();
+  const opts = getAnalyzeOptions();
+
+  if (!url) {
+    showError('请输入网站 URL');
+    $('urlInput').focus();
+    return;
+  }
+
+  hideError();
+  hideDebugPanel();
+  showLoading('正在拉取调试证据...');
+
+  try {
+    const response = await fetch('/api/analyze/debug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: url,
+        api_key: apiKey || 'debug-no-key',
+        model: 'deepseek-chat',
+        enable_vision: opts.enable_vision,
+        interaction_level: opts.interaction_level,
+        vision_max_images: opts.vision_max_images,
+        click_whitelist: opts.click_whitelist,
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || `Debug 请求失败 (${response.status})`);
+    }
+
+    const data = await response.json();
+    renderDebugPanel(data);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderDebugPanel(data) {
+  const wrapper = $('debugWrapper');
+  const content = $('debugContent');
+  const dbg = data.tech_detection_debug || {};
+  const rawTech = dbg.raw_tech_stack || {};
+  const finalTech = dbg.tech_stack || {};
+  const evidence = dbg.evidence || [];
+  const suppressions = dbg.suppressions || [];
+  const arch = data.architecture_hints || {};
+  const rows = data.evidence_rows || [];
+  const animEvidence = data.animation_evidence || {};
+  const animRows = data.animation_evidence_rows || [];
+  const gsapProfile = data.gsap_profile || {};
+
+  const html = [];
+  html.push('<h3>架构推断</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(arch, null, 2)) + '</code></pre>');
+
+  html.push('<h3>技术栈（抑制前）</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(rawTech, null, 2)) + '</code></pre>');
+
+  html.push('<h3>技术栈（抑制后）</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(finalTech, null, 2)) + '</code></pre>');
+
+  html.push('<h3>命中证据 (' + evidence.length + ')</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(evidence.slice(0, 120), null, 2)) + '</code></pre>');
+
+  html.push('<h3>抑制规则命中 (' + suppressions.length + ')</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(suppressions, null, 2)) + '</code></pre>');
+
+  html.push('<h3>结论证据行</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(rows, null, 2)) + '</code></pre>');
+
+  html.push('<h3>动画证据摘要</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(animEvidence, null, 2)) + '</code></pre>');
+
+  html.push('<h3>动画证据明细行 (' + animRows.length + ')</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(animRows.slice(0, 80), null, 2)) + '</code></pre>');
+
+  html.push('<h3>GSAP 实现方案画像</h3>');
+  html.push('<pre><code class="language-json">' + escapeHtml(JSON.stringify(gsapProfile, null, 2)) + '</code></pre>');
+
+  content.innerHTML = html.join('');
+  content.querySelectorAll('pre code').forEach((block) => hljs.highlightElement(block));
+
+  wrapper.style.display = 'block';
+  wrapper.classList.add('visible');
+  setTimeout(() => wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 }
 
 // ============================================================
@@ -906,10 +1403,13 @@ function hideInfoGrid() {
 function renderInfoGrid(data) {
   if (!data) return;
 
+  currentAlertSummary = data.alert_summary || null;
+
   const grid = $('infoGrid');
   grid.style.display = 'grid';
 
   let items = '';
+  const visualScorecard = data.visual_scorecard || null;
 
   // 网站标题 + Meta描述
   if (data.title) {
@@ -933,7 +1433,7 @@ function renderInfoGrid(data) {
     items += `<div class="info-item">
       <div class="label">🖼 Open Graph 图片</div>
       <div style="margin-top:6px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">
-        <img src="${escapeHtml(data.og_image)}" style="width:100%;max-height:120px;object-fit:cover" onerror="this.style.display='none'" />
+        <img src="${escapeHtml(data.og_image)}" alt="Open Graph preview" style="width:100%;max-height:120px;object-fit:cover" onerror="this.style.display='none'" />
       </div>
     </div>`;
   } else if (data.og_title) {
@@ -1052,6 +1552,84 @@ function renderInfoGrid(data) {
     }
   }
 
+  // 🧠 架构推断提示（带置信度）
+  if (data.architecture_hints) {
+    const ah = data.architecture_hints;
+    const c = Number(ah.mixed_architecture_confidence || 0);
+    const cColor = c >= 0.7 ? 'var(--accent-5)' : c >= 0.4 ? 'var(--accent-6)' : '#ef4444';
+    const mixed = ah.likely_mixed_architecture ? '是' : '否';
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🧠 架构推断提示</div>
+      <div class="value" style="font-size:0.8rem;line-height:1.6">
+        混合架构：<strong>${mixed}</strong> · 置信度：<span style="color:${cColor};font-weight:700">${c.toFixed(2)}</span><br>
+        Next.js 信号：${ah.nextjs_signals || 0} · Webflow 信号：${ah.webflow_signals || 0}<br>
+        <span style="font-size:0.72rem;color:var(--text-muted)">${escapeHtml(ah.instruction || '')}</span>
+      </div>
+    </div>`;
+  }
+
+  // 🚨 变化告警摘要（同域名连续分析）
+  if (data.alert_summary) {
+    const alert = data.alert_summary;
+    const sev = alert.severity || 'low';
+    const score = Number(alert.change_score || 0);
+    const sevColor = sev === 'high' ? '#ef4444' : sev === 'medium' ? 'var(--accent-6)' : 'var(--accent-5)';
+    const m = alert.metrics || {};
+    const sizeDelta = (m.html_size_kb && m.html_size_kb.delta_pct !== undefined)
+      ? (Number(m.html_size_kb.delta_pct) * 100).toFixed(1) + '%'
+      : 'N/A';
+    const moduleDelta = (m.module_count && m.module_count.delta !== undefined)
+      ? String(m.module_count.delta)
+      : 'N/A';
+    const techChangeTotal = (alert.tech_stack_changes && alert.tech_stack_changes.total !== undefined)
+      ? String(alert.tech_stack_changes.total)
+      : '0';
+    const added = (alert.tech_stack_changes && Array.isArray(alert.tech_stack_changes.added))
+      ? alert.tech_stack_changes.added
+      : [];
+    const removed = (alert.tech_stack_changes && Array.isArray(alert.tech_stack_changes.removed))
+      ? alert.tech_stack_changes.removed
+      : [];
+    const detailHtml = `
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;color:var(--text-secondary)">查看技术栈变更明细</summary>
+        <div style="margin-top:6px;font-size:0.76rem;color:var(--text-muted)">
+          <div><strong style="color:var(--accent-5)">新增:</strong> ${added.length ? escapeHtml(added.join(', ')) : '无'}</div>
+          <div style="margin-top:4px"><strong style="color:#ef4444">移除:</strong> ${removed.length ? escapeHtml(removed.join(', ')) : '无'}</div>
+        </div>
+      </details>
+    `;
+
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🚨 变化告警摘要</div>
+      <div class="value" style="font-size:0.82rem;line-height:1.6">
+        级别：<span style="color:${sevColor};font-weight:700">${escapeHtml(sev)}</span>
+        · 分数：<strong>${score.toFixed(3)}</strong>
+        · 阈值：${Number(alert.threshold || 0).toFixed(2)}<br>
+        HTML 体积变化：${escapeHtml(sizeDelta)} · 模块变化：${escapeHtml(moduleDelta)} · 技术栈变动项：${escapeHtml(techChangeTotal)}
+        ${detailHtml}
+      </div>
+    </div>`;
+  }
+
+  // 👁️ 视觉与交互采样摘要
+  if (data.interaction_summary || data.visual_snapshot_count !== undefined) {
+    const it = data.interaction_summary || {};
+    const level = it.level || 'off';
+    const stepCount = it.total_steps || 0;
+    const shotCount = Number(data.visual_snapshot_count || 0);
+    const visionEnabled = data.vision_enabled === undefined ? 'N/A' : (data.vision_enabled ? 'on' : 'off');
+    const visionMaxImages = data.vision_max_images !== undefined ? String(data.vision_max_images) : 'N/A';
+    const clickWhitelist = data.click_whitelist === undefined ? 'N/A' : (data.click_whitelist ? 'on' : 'off');
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">👁️ 视觉与交互采样</div>
+      <div class="value" style="font-size:0.82rem;line-height:1.6">
+        交互级别：<strong>${escapeHtml(level)}</strong> · 交互步骤：${escapeHtml(String(stepCount))} · 截图数量：${escapeHtml(String(shotCount))}<br>
+        视觉模型：${escapeHtml(visionEnabled)} · 视觉截图上限：${escapeHtml(visionMaxImages)} · 点击白名单：${escapeHtml(clickWhitelist)}
+      </div>
+    </div>`;
+  }
+
   // 🎬 运行时动画数据
   if (data.runtime_animation && Object.keys(data.runtime_animation).length > 0) {
     const ra = data.runtime_animation;
@@ -1062,7 +1640,15 @@ function renderInfoGrid(data) {
     if (ra.total_animated_elements !== undefined) animLines.push(`CSS Animation 元素: ${ra.total_animated_elements} 个`);
     if (ra.total_transform_elements !== undefined) animLines.push(`Transform 元素: ${ra.total_transform_elements} 个`);
     if (ra.total_will_change_elements !== undefined) animLines.push(`will-change 元素: ${ra.total_will_change_elements} 个`);
+    if (ra.waapi_animation_count !== undefined) animLines.push(`WAAPI 实例: ${ra.waapi_animation_count}`);
+    if (ra.transition_all_elements !== undefined) animLines.push(`transition:all 元素: ${ra.transition_all_elements}`);
+    if (ra.non_composited_transition_elements !== undefined) animLines.push(`非合成过渡风险元素: ${ra.non_composited_transition_elements}`);
+    if (ra.scroll_signal_elements !== undefined) animLines.push(`滚动信号元素: ${ra.scroll_signal_elements}`);
+    if (ra.parallax_hint_elements !== undefined) animLines.push(`视差线索元素: ${ra.parallax_hint_elements}`);
+    if (ra.lenis_detected !== undefined) animLines.push(`Lenis 运行时: ${ra.lenis_detected ? '✓' : '×'}`);
     if (ra.lottie) animLines.push(`Lottie: ✓`);
+    if (ra.lottie_elements !== undefined) animLines.push(`Lottie 相关元素: ${ra.lottie_elements}`);
+    if (ra.video_elements !== undefined) animLines.push(`Video 元素: ${ra.video_elements}`);
     if (ra.three_version) animLines.push(`Three.js r${ra.three_version}`);
     if (ra.smooth_scroll) animLines.push(`平滑滚动: ✓`);
 
@@ -1072,6 +1658,63 @@ function renderInfoGrid(data) {
         <div class="value" style="font-size:0.82rem;color:var(--accent-5)">${animLines.join(' | ')}</div>
       </div>`;
     }
+  }
+
+  // 🧭 GSAP 实现方案画像
+  if (data.gsap_profile && data.gsap_profile.gsap_detected) {
+    const gp = data.gsap_profile;
+    const cc = gp.call_counts || {};
+    const st = gp.scrolltrigger_profile || {};
+    const tm = gp.tween_mix || {};
+    const hs = (gp.trigger_hotspots || []).slice(0, 3);
+    const hsHtml = hs.length
+      ? `<br><span style="font-size:0.74rem;color:var(--text-muted)">高频触发点: ${hs.map(h => escapeHtml((h.selector || 'unknown') + '×' + Number(h.count || 0))).join(' / ')}</span>`
+      : '';
+    const acts = (gp.optimization_actions || []).slice(0, 3);
+    const actsHtml = acts.length
+      ? `<br><span style="font-size:0.74rem;color:var(--text-secondary)">建议: ${acts.map(x => escapeHtml(x)).join('；')}</span>`
+      : '';
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🧭 GSAP 实现方案画像</div>
+      <div class="value" style="font-size:0.8rem;line-height:1.7">
+        风格：<strong>${escapeHtml(gp.implementation_style || 'unknown')}</strong> · 场景：<strong>${escapeHtml(gp.scenario_profile || 'balanced')}</strong> · 版本：${escapeHtml(gp.gsap_version || 'unknown')}<br>
+        Tween：to=${Number(cc.gsap_to || 0)} / from=${Number(cc.gsap_from || 0)} / fromTo=${Number(cc.gsap_fromto || 0)} / timeline=${Number(cc.gsap_timeline || 0)}<br>
+        结构占比：to=${Number(tm.to_ratio || 0).toFixed(3)} · from=${Number(tm.from_ratio || 0).toFixed(3)} · fromTo=${Number(tm.fromto_ratio || 0).toFixed(3)}<br>
+        ScrollTrigger：instances=${Number(st.instances || 0)} · scrub=${Number(st.with_scrub || 0)} · pin=${Number(st.with_pin || 0)} · scrub+pin=${Number(st.scrub_pin_combo || 0)} · snap=${Number(st.with_snap || 0)} · toggleActions=${Number(st.with_toggle_actions || 0)}<br>
+        Start分布：top-top=${Number(st.start_top_top || 0)} · top-bottom=${Number(st.start_top_bottom || 0)} · top-center=${Number(st.start_top_center || 0)} · other=${Number(st.start_other || 0)}<br>
+        End分布：+=x=${Number(st.end_plus_eq || 0)} · bottom-top=${Number(st.end_bottom_top || 0)} · other=${Number(st.end_other || 0)}<br>
+        页面分层：首屏=${Number(st.above_fold || 0)} · 中段=${Number(st.mid_fold || 0)} · 深层=${Number(st.deep_fold || 0)}
+        ${hsHtml}
+        ${actsHtml}
+      </div>
+    </div>`;
+  }
+
+  // 🎬 动画库证据置信度
+  if (data.animation_evidence && Array.isArray(data.animation_evidence.libraries) && data.animation_evidence.libraries.length > 0) {
+    const libs = data.animation_evidence.libraries.slice(0, 10);
+    const libLines = libs.map((it) => {
+      const c = Number(it.confidence || 0);
+      const color = c >= 0.75 ? 'var(--accent-5)' : c >= 0.5 ? 'var(--accent-6)' : '#f87171';
+      const paths = (it.evidence_paths || []).slice(0, 3).join(', ') || '无';
+      const urls = (it.script_hit_urls || []).slice(0, 3);
+      const risk = (it.false_positive_risk || 'medium').toLowerCase();
+      const riskColor = risk === 'high' ? '#f87171' : (risk === 'low' ? 'var(--accent-5)' : 'var(--accent-6)');
+      const urlHtml = urls.length
+        ? `<details style="margin-top:3px"><summary style="cursor:pointer;color:var(--text-secondary)">脚本证据(${urls.length})</summary><div style="margin-top:3px;font-size:0.72rem;color:var(--text-muted)">${urls.map(u => escapeHtml(u)).join('<br>')}</div></details>`
+        : '';
+      return `<div style="margin-bottom:6px">
+        <strong style="color:${color}">${escapeHtml(it.library || '')}</strong>
+        <span style="color:var(--text-secondary)"> (${escapeHtml(it.level || '')}, ${c.toFixed(2)})</span>
+        <span style="margin-left:6px;font-size:0.7rem;color:${riskColor}">误报风险:${escapeHtml(risk)}</span><br>
+        <span style="font-size:0.72rem;color:var(--text-muted)">证据: ${escapeHtml(paths)}</span>
+        ${urlHtml}
+      </div>`;
+    }).join('');
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">🎬 动画库识别置信度</div>
+      <div class="value" style="font-size:0.8rem;line-height:1.6">${libLines}</div>
+    </div>`;
   }
 
   // 🚀 Lighthouse 性能数据 (v2.0)
@@ -1091,6 +1734,28 @@ function renderInfoGrid(data) {
     items += `<div class="info-item" style="grid-column: 1 / -1">
       <div class="label">🚀 Lighthouse 性能审计 (v2)</div>
       <div class="value" style="font-size:0.82rem">${perfHtml}</div>
+    </div>`;
+  }
+
+  // 👁️ 视觉评分雷达图（纯 CSS + JS）
+  if (visualScorecard && visualScorecard.available && visualScorecard.mapped_scores) {
+    const mapped = visualScorecard.mapped_scores;
+    const findings = Array.isArray(visualScorecard.findings) ? visualScorecard.findings.slice(0, 2) : [];
+    const risks = Array.isArray(visualScorecard.risks) ? visualScorecard.risks.slice(0, 2) : [];
+    items += `<div class="info-item" style="grid-column: 1 / -1">
+      <div class="label">👁️ 视觉评分雷达图</div>
+      <div class="visual-score-wrap">
+        <canvas id="visualRadarCanvas" class="visual-radar-canvas" width="320" height="320"></canvas>
+        <div class="value" style="font-size:0.82rem;line-height:1.8">
+          UI/UX：<strong>${Number(mapped.ui_ux || 0).toFixed(1)}</strong> ·
+          交互质量：<strong>${Number(mapped.interaction_quality || 0).toFixed(1)}</strong> ·
+          转化可见性：<strong>${Number(mapped.conversion_visibility || 0).toFixed(1)}</strong><br>
+          综合视觉分：<span style="color:var(--accent-5);font-weight:700">${Number(mapped.overall || 0).toFixed(1)}</span><br>
+          置信度：${Number(visualScorecard.confidence || 0).toFixed(2)} · 截图数：${Number(visualScorecard.snapshot_count || 0)}
+          ${findings.length ? `<br><span style="font-size:0.74rem;color:var(--text-secondary)">亮点: ${escapeHtml(findings.join('；'))}</span>` : ''}
+          ${risks.length ? `<br><span style="font-size:0.74rem;color:#fca5a5">风险: ${escapeHtml(risks.join('；'))}</span>` : ''}
+        </div>
+      </div>
     </div>`;
   }
 
@@ -1162,9 +1827,89 @@ function renderInfoGrid(data) {
   }
 
   grid.innerHTML = items;
+  if (visualScorecard && visualScorecard.available && visualScorecard.mapped_scores) {
+    drawVisualRadar('visualRadarCanvas', visualScorecard.mapped_scores);
+  }
   setTimeout(() => {
     grid.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 100);
+}
+
+function drawVisualRadar(canvasId, mappedScores) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const labels = ['UI/UX', '交互质量', '转化可见性'];
+  const values = [
+    Number(mappedScores.ui_ux || 0),
+    Number(mappedScores.interaction_quality || 0),
+    Number(mappedScores.conversion_visibility || 0),
+  ];
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const maxR = Math.min(w, h) * 0.34;
+  const rings = 5;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 背景环网格
+  for (let i = 1; i <= rings; i++) {
+    const r = (maxR * i) / rings;
+    ctx.beginPath();
+    for (let a = 0; a < labels.length; a++) {
+      const rad = (-Math.PI / 2) + (a * 2 * Math.PI / labels.length);
+      const x = cx + Math.cos(rad) * r;
+      const y = cy + Math.sin(rad) * r;
+      if (a === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(152,152,184,0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 轴线与标签
+  for (let a = 0; a < labels.length; a++) {
+    const rad = (-Math.PI / 2) + (a * 2 * Math.PI / labels.length);
+    const x = cx + Math.cos(rad) * maxR;
+    const y = cy + Math.sin(rad) * maxR;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'rgba(167,139,250,0.35)';
+    ctx.stroke();
+
+    const lx = cx + Math.cos(rad) * (maxR + 18);
+    const ly = cy + Math.sin(rad) * (maxR + 18);
+    ctx.fillStyle = '#c4b5fd';
+    ctx.font = '12px Segoe UI, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[a], lx, ly);
+  }
+
+  // 数据多边形
+  ctx.beginPath();
+  for (let a = 0; a < values.length; a++) {
+    const score = Math.max(0, Math.min(100, values[a]));
+    const r = maxR * (score / 100);
+    const rad = (-Math.PI / 2) + (a * 2 * Math.PI / values.length);
+    const x = cx + Math.cos(rad) * r;
+    const y = cy + Math.sin(rad) * r;
+    if (a === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(99,102,241,0.25)';
+  ctx.strokeStyle = 'rgba(99,102,241,0.95)';
+  ctx.lineWidth = 2;
+  ctx.fill();
+  ctx.stroke();
 }
 
 // ============================================================
@@ -1241,6 +1986,27 @@ function downloadReport() {
   showToast('📥 报告已下载');
 }
 
+function downloadAlertSummary() {
+  if (!currentAlertSummary) {
+    showToast('⚠️ 当前暂无变化告警数据可下载');
+    return;
+  }
+
+  const blob = new Blob([JSON.stringify(currentAlertSummary, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const domain = currentWebsiteData?.domain || 'website';
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `alert-summary-${domain}-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast('🚨 告警摘要已下载');
+}
+
 // ============================================================
 //  Toast 提示
 // ============================================================
@@ -1284,6 +2050,79 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ============================================================
+//  历史记录功能
+// ============================================================
+async function loadHistory() {
+  const list = $('historyList');
+  list.innerHTML = '<span style="color:var(--text-muted)">加载中...</span>';
+  try {
+    const res = await fetch('/api/history?limit=15', { headers: getAdminHeaders() });
+    if (!res.ok) throw new Error('请求失败');
+    const items = await res.json();
+    if (!items.length) {
+      list.innerHTML = '<span style="color:var(--text-muted)">暂无历史记录，完成一次分析后会自动保存。</span>';
+      return;
+    }
+    list.innerHTML = items.map(item => {
+      const techTags = Object.values(item.tech_stack || {})
+        .flat().slice(0, 5)
+        .map(t => `<span style="background:var(--surface-3,#2a2a3e);padding:1px 6px;border-radius:4px;font-size:0.7rem;margin-right:3px">${escapeHtml(t)}</span>`)
+        .join('');
+      return `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1;cursor:pointer" onclick="loadHistoryItem(${item.id})">
+            <div style="color:var(--text-primary);font-weight:600;margin-bottom:3px">${escapeHtml(item.domain || item.url)}</div>
+            <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">${escapeHtml(item.created_at)}</div>
+            <div style="margin-bottom:4px">${techTags}</div>
+            <div style="color:var(--text-secondary);font-size:0.75rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:600px">${escapeHtml((item.summary || '').slice(0, 120))}…</div>
+          </div>
+          <button onclick="deleteHistoryItem(${item.id},this)" style="margin-left:10px;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem;white-space:nowrap" title="删除此记录">🗑 删除</button>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<span style="color:#f87171">加载失败: ${e.message}</span>`;
+  }
+}
+
+async function loadHistoryItem(id) {
+  try {
+    const res = await fetch(`/api/history/${id}`, { headers: getAdminHeaders() });
+    if (!res.ok) throw new Error('请求失败');
+    const item = await res.json();
+    currentReport = item.report;
+    renderReport(item.report);
+    $('reportWrapper').classList.add('visible');
+    $('reportWrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('✅ 已加载历史报告');
+  } catch (e) {
+    showToast(`❌ 加载失败: ${e.message}`);
+  }
+}
+
+async function deleteHistoryItem(id, btn) {
+  if (!confirm('确定删除此条历史记录？')) return;
+  try {
+    const res = await fetch(`/api/history/${id}`, { method: 'DELETE', headers: getAdminHeaders() });
+    if (!res.ok) throw new Error('删除失败');
+    showToast('🗑 已删除');
+    loadHistory();
+  } catch (e) {
+    showToast(`❌ ${e.message}`);
+  }
+}
+
+// 初始化本地保存报告搜索监听
+$('localReportKeyword')?.addEventListener('input', () => {
+  loadLocalReports();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeLocalReportPanel();
+  }
+});
 </script>
 
 </body>

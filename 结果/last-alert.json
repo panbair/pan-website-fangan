@@ -1,0 +1,27 @@
+{
+  "severity": "low",
+  "threshold": 0.2,
+  "change_score": 0.0,
+  "metrics": {
+    "html_size_kb": {
+      "baseline": 0.5,
+      "current": 0.5,
+      "delta_pct": 0.0
+    },
+    "module_count": {
+      "baseline": 0,
+      "current": 0,
+      "delta": 0
+    },
+    "animated_elements": {
+      "baseline": 0,
+      "current": 0,
+      "delta_pct": 0.0
+    }
+  },
+  "tech_stack_changes": {
+    "added": [],
+    "removed": [],
+    "total": 0
+  }
+}
