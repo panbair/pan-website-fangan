@@ -11,7 +11,6 @@ Web Vitals 测量 — 通过 Playwright 注入 web-vitals.js 测量真实性能
 - 长任务 (Long Tasks) — 检测主线程阻塞
 """
 import asyncio
-import json
 
 from config import logger
 

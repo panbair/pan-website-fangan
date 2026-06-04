@@ -613,6 +613,144 @@ input::placeholder { color: var(--text-muted); }
   padding: 18px;
 }
 
+/* ============================================================
+   本地报告多选 & 方案生成
+   ============================================================ */
+.local-report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.local-report-toolbar .select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.local-report-toolbar .select-all-label input[type="checkbox"] {
+  accent-color: var(--accent-1);
+  width: 16px; height: 16px;
+  cursor: pointer;
+}
+
+.selected-count {
+  font-size: 0.75rem;
+  color: var(--accent-4);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+
+.btn-plan:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5);
+}
+
+.btn-plan:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.local-report-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+
+.local-report-item.selected {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.local-report-item .item-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.local-report-item .item-checkbox input[type="checkbox"] {
+  accent-color: var(--accent-1);
+  width: 16px; height: 16px;
+  cursor: pointer;
+}
+
+.local-report-item .item-body {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.local-report-item .item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.plan-loading-bar {
+  display: none;
+  text-align: center;
+  padding: 24px;
+  margin: 16px 0;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.plan-loading-bar.visible {
+  display: block;
+}
+
+.plan-loading-bar .loading-wave {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.plan-loading-bar .loading-wave span {
+  display: block;
+  width: 4px; height: 28px;
+  background: linear-gradient(180deg, #f59e0b, #ef4444);
+  border-radius: 2px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.plan-loading-bar .loading-wave span:nth-child(1) { animation-delay: 0s; }
+.plan-loading-bar .loading-wave span:nth-child(2) { animation-delay: 0.1s; }
+.plan-loading-bar .loading-wave span:nth-child(3) { animation-delay: 0.2s; }
+.plan-loading-bar .loading-wave span:nth-child(4) { animation-delay: 0.3s; }
+.plan-loading-bar .loading-wave span:nth-child(5) { animation-delay: 0.4s; }
+
 /* 屏幕阅读器可见，视觉隐藏 */
 .sr-only {
   position: absolute;
@@ -680,25 +818,12 @@ input::placeholder { color: var(--text-muted); }
     </div>
 
     <div class="input-group" style="gap:12px;align-items:center;margin-top:10px">
-      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
-        <input type="checkbox" id="visionEnabled" checked />
-        启用视觉模型（截图分析）
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
-        交互模拟级别
-        <select id="interactionLevel" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 8px">
-          <option value="standard" selected>standard</option>
-          <option value="basic">basic</option>
-          <option value="off">off</option>
+      <label style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:0.82rem">
+        分析模式
+        <select id="analyzeMode" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 8px">
+          <option value="stream" selected>实时流式（推荐）</option>
+          <option value="batch">批量返回</option>
         </select>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
-        视觉截图数
-        <input id="visionMaxImages" type="number" min="1" max="8" value="3" style="width:56px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:4px 6px" />
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:0.84rem">
-        <input type="checkbox" id="clickWhitelist" checked />
-        点击白名单
       </label>
     </div>
 
@@ -758,7 +883,7 @@ input::placeholder { color: var(--text-muted); }
 
   <div id="localReportModal" class="modal-overlay" aria-hidden="true" onclick="onLocalReportModalMaskClick(event)">
     <div class="modal-card" id="localReportPanel" role="dialog" aria-modal="true" aria-labelledby="localReportTitle">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px">
         <h3 id="localReportTitle" style="color:var(--text-secondary);font-size:0.95rem;margin:0">💾 本地保存报告（IndexedDB）</h3>
         <div style="display:flex;gap:8px;align-items:center">
           <button onclick="clearAllLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🧹 清空</button>
@@ -766,8 +891,26 @@ input::placeholder { color: var(--text-muted); }
           <button onclick="closeLocalReportModal()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">✖ 关闭</button>
         </div>
       </div>
+      <!-- 工具栏：全选 + 已选数量 + 生成方案 -->
+      <div class="local-report-toolbar">
+        <label class="select-all-label">
+          <input type="checkbox" id="selectAllLocalReports" onchange="toggleSelectAllLocalReports()" title="全选/取消全选" />
+          <span>全选</span>
+        </label>
+        <span class="selected-count" id="selectedLocalCount">已选: 0</span>
+        <button class="btn-plan" id="generatePlanBtn" onclick="generatePlanFromSelected()" disabled>
+          🚀 生成方案
+        </button>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
         <input id="localReportKeyword" type="text" placeholder="按域名/标题搜索本地报告" style="flex:1;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem" />
+      </div>
+      <!-- 方案生成加载指示器 -->
+      <div class="plan-loading-bar" id="planLoadingBar">
+        <div class="loading-wave">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <p style="color:var(--text-secondary);font-size:0.85rem" id="planLoadingText">🤖 DeepSeek AI 正在生成综合优化方案...</p>
       </div>
       <div id="localReportList" style="font-size:0.82rem;color:var(--text-muted)">当前暂无本地保存报告</div>
     </div>
@@ -778,6 +921,22 @@ input::placeholder { color: var(--text-muted); }
       <h2>🧪 Debug 证据面板</h2>
     </div>
     <div class="report-content" id="debugContent"></div>
+  </div>
+
+  <!-- ============================================================
+       缓存管理面板
+       ============================================================ -->
+  <div style="margin-top:24px">
+    <div class="card" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="color:var(--text-secondary);font-size:0.95rem;margin:0">⚡ 服务端缓存管理</h3>
+        <div style="display:flex;gap:8px">
+          <button onclick="refreshCacheInfo()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🔄 刷新</button>
+          <button onclick="clearServerCache()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px;color:#fca5a5">🧹 清除缓存</button>
+        </div>
+      </div>
+      <div id="cacheInfo" style="font-size:0.8rem;color:var(--text-muted)">点击"刷新"查看缓存状态</div>
+    </div>
   </div>
 
   <!-- ============================================================
@@ -808,11 +967,11 @@ input::placeholder { color: var(--text-muted); }
 // ============================================================
 //  状态管理
 // ============================================================
-<!--sk-9f0e8601a487aa9e00e585ae33e52 假的-->
 let currentReport = '';
 let currentWebsiteData = null;
 let currentAlertSummary = null;
 let highlightedLocalReportId = null;
+let selectedLocalReportIds = new Set();
 const LOCAL_REPORT_DB = 'webinsight-local-reports';
 const LOCAL_REPORT_STORE = 'reports';
 
@@ -842,6 +1001,9 @@ function openLocalReportModal() {
   if (!modal) return;
   modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
+  // 重置方案生成加载指示器
+  const planLoadingBar = $('planLoadingBar');
+  if (planLoadingBar) planLoadingBar.classList.remove('visible');
   loadLocalReports();
 }
 
@@ -920,26 +1082,41 @@ async function loadLocalReports() {
         })
       : rows;
 
+    // 更新全选复选框状态
+    const allIds = filtered.map(r => Number(r.id));
+    const allSelected = allIds.length > 0 && allIds.every(id => selectedLocalReportIds.has(id));
+    const selectAllCb = $('selectAllLocalReports');
+    if (selectAllCb) {
+      selectAllCb.checked = allSelected;
+      selectAllCb.indeterminate = !allSelected && allIds.some(id => selectedLocalReportIds.has(id));
+    }
+    updateSelectedCount();
+
     if (!filtered.length) {
       list.innerHTML = '<span style="color:var(--text-muted)">当前暂无本地保存报告</span>';
       return;
     }
 
     list.innerHTML = filtered.map((item) => {
+      const id = Number(item.id);
       const name = item.domain || item.title || '未命名报告';
       const time = item.saved_at ? new Date(item.saved_at).toLocaleString() : '未知时间';
       const preview = (item.report || '').replace(/\s+/g, ' ').slice(0, 110);
-      const isHighlighted = Number(item.id) === Number(highlightedLocalReportId);
+      const isHighlighted = id === Number(highlightedLocalReportId);
+      const isSelected = selectedLocalReportIds.has(id);
       return `
-        <div data-local-report-id="${Number(item.id)}" style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;${isHighlighted ? 'background:rgba(16,185,129,0.12);border-radius:8px;padding:10px 8px;' : ''}">
-          <div style="flex:1;cursor:pointer" onclick="loadLocalReportItem(${Number(item.id)})">
+        <div class="local-report-item${isSelected ? ' selected' : ''}${isHighlighted ? ' highlighted' : ''}" data-local-report-id="${id}" style="${isHighlighted ? 'background:rgba(16,185,129,0.12);' : ''}">
+          <div class="item-checkbox">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleLocalReportSelection(${id}, this.checked)" onclick="event.stopPropagation()" />
+          </div>
+          <div class="item-body" onclick="loadLocalReportItem(${id})">
             <div style="color:var(--text-primary);font-weight:600;margin-bottom:3px">${escapeHtml(name)}${isHighlighted ? '<span style="margin-left:8px;font-size:0.68rem;color:var(--accent-5)">刚保存</span>' : ''}</div>
             <div style="color:var(--text-muted);font-size:0.72rem;margin-bottom:4px">${escapeHtml(time)}</div>
             <div style="color:var(--text-secondary);font-size:0.75rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:600px">${escapeHtml(preview)}${preview.length >= 110 ? '…' : ''}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <button onclick="event.stopPropagation();loadLocalReportItem(${Number(item.id)})" style="background:none;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">查看</button>
-            <button onclick="event.stopPropagation();deleteLocalReportItem(${Number(item.id)})" style="background:none;border:1px solid var(--border);color:#fca5a5;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">删除</button>
+          <div class="item-actions">
+            <button onclick="event.stopPropagation();loadLocalReportItem(${id})" style="background:none;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">查看</button>
+            <button onclick="event.stopPropagation();deleteLocalReportItem(${id})" style="background:none;border:1px solid var(--border);color:#fca5a5;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:0.7rem">删除</button>
           </div>
         </div>`;
     }).join('');
@@ -955,6 +1132,232 @@ async function loadLocalReports() {
   }
 }
 
+function toggleSelectAllLocalReports() {
+  const cb = $('selectAllLocalReports');
+  if (!cb) return;
+  const checked = cb.checked;
+  const list = $('localReportList');
+  if (!list) return;
+  const checkboxes = list.querySelectorAll('.item-checkbox input[type="checkbox"]');
+  checkboxes.forEach((box) => {
+    box.checked = checked;
+    const itemDiv = box.closest('.local-report-item');
+    const idAttr = itemDiv ? itemDiv.getAttribute('data-local-report-id') : null;
+    if (idAttr) {
+      const id = Number(idAttr);
+      if (checked) {
+        selectedLocalReportIds.add(id);
+        if (itemDiv) itemDiv.classList.add('selected');
+      } else {
+        selectedLocalReportIds.delete(id);
+        if (itemDiv) itemDiv.classList.remove('selected');
+      }
+    }
+  });
+  updateSelectedCount();
+}
+
+function toggleLocalReportSelection(id, checked) {
+  const list = $('localReportList');
+  if (checked) {
+    selectedLocalReportIds.add(id);
+    if (list) {
+      const item = list.querySelector(`[data-local-report-id="${id}"]`);
+      if (item) item.classList.add('selected');
+    }
+  } else {
+    selectedLocalReportIds.delete(id);
+    if (list) {
+      const item = list.querySelector(`[data-local-report-id="${id}"]`);
+      if (item) item.classList.remove('selected');
+    }
+  }
+  // 更新全选复选框状态
+  updateSelectAllCheckbox();
+  updateSelectedCount();
+}
+
+function updateSelectAllCheckbox() {
+  const cb = $('selectAllLocalReports');
+  if (!cb) return;
+  const list = $('localReportList');
+  if (!list) return;
+  const allBoxes = list.querySelectorAll('.item-checkbox input[type="checkbox"]');
+  const total = allBoxes.length;
+  const checked = list.querySelectorAll('.item-checkbox input[type="checkbox"]:checked').length;
+  if (total === 0) {
+    cb.checked = false;
+    cb.indeterminate = false;
+  } else if (checked === total) {
+    cb.checked = true;
+    cb.indeterminate = false;
+  } else if (checked === 0) {
+    cb.checked = false;
+    cb.indeterminate = false;
+  } else {
+    cb.checked = false;
+    cb.indeterminate = true;
+  }
+}
+
+function updateSelectedCount() {
+  const countEl = $('selectedLocalCount');
+  const btn = $('generatePlanBtn');
+  const count = selectedLocalReportIds.size;
+  if (countEl) {
+    countEl.textContent = '已选: ' + count;
+    countEl.style.color = count > 0 ? 'var(--accent-5)' : 'var(--text-muted)';
+  }
+  if (btn) {
+    btn.disabled = count === 0;
+  }
+}
+
+async function generatePlanFromSelected() {
+  if (selectedLocalReportIds.size === 0) {
+    showToast('⚠️ 请先选择至少一份报告');
+    return;
+  }
+
+  const apiKey = $('apiKeyInput').value.trim();
+
+  // 收集选中报告的数据
+  const selectedReports = [];
+  try {
+    const db = await openLocalReportDb();
+    for (const id of selectedLocalReportIds) {
+      const row = await new Promise((resolve, reject) => {
+        const tx = db.transaction([LOCAL_REPORT_STORE], 'readonly');
+        const store = tx.objectStore(LOCAL_REPORT_STORE);
+        const req = store.get(Number(id));
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error || new Error('读取失败'));
+      });
+      if (row) {
+        selectedReports.push({
+          title: row.title || '',
+          domain: row.domain || '',
+          report: row.report || '',
+        });
+      }
+    }
+    db.close();
+  } catch (err) {
+    showToast('❌ 读取本地报告失败: ' + (err.message || err));
+    return;
+  }
+
+  if (selectedReports.length === 0) {
+    showToast('⚠️ 未能读取选中的报告');
+    return;
+  }
+
+  // 显示加载指示器
+  const planLoadingBar = $('planLoadingBar');
+  const planLoadingText = $('planLoadingText');
+  if (planLoadingBar) planLoadingBar.classList.add('visible');
+  if (planLoadingText) planLoadingText.textContent = '🤖 DeepSeek AI 正在分析 ' + selectedReports.length + ' 份报告并生成综合优化方案...';
+
+  // 先关闭模态框
+  closeLocalReportModal();
+
+  // 隐藏之前的报告，显示加载状态
+  hideReport();
+  hideInfoGrid();
+  hideError();
+  showLoading('正在生成综合优化方案...');
+
+  try {
+    const response = await fetch('/api/plan/generate/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reports: selectedReports,
+        api_key: apiKey,
+        model: 'deepseek-chat',
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(getFriendlyApiError(response.status, errData.detail));
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let planText = '';
+
+    updateLoadingText('🤖 DeepSeek AI 正在生成综合优化方案...');
+    $('reportWrapper').classList.add('visible');
+    $('reportContent').innerHTML = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('event: done')) break;
+        if (line.startsWith('event: error')) {
+          let errText = '方案生成服务暂时不可用';
+          try {
+            const prefixPos = line.indexOf('data: ');
+            if (prefixPos !== -1) {
+              const payload = JSON.parse(line.substring(prefixPos + 6));
+              if (payload.error) errText = payload.error;
+            }
+          } catch(_) {}
+          showError(errText);
+          hideLoading();
+          if (planLoadingBar) planLoadingBar.classList.remove('visible');
+          return;
+        }
+        if (line.startsWith('data: ') && line.indexOf('"content"') > -1) {
+          try {
+            const prefixPos = line.indexOf('{');
+            if (prefixPos !== -1) {
+              const data = JSON.parse(line.substring(prefixPos));
+              planText += data.content || '';
+              if (!planText._lastUpdate || Date.now() - planText._lastUpdate > 50) {
+                $('reportContent').innerHTML = marked.parse(planText);
+                $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+                planText._lastUpdate = Date.now();
+              }
+            }
+          } catch(_) {}
+        }
+      }
+    }
+
+    currentReport = planText;
+    currentWebsiteData = null;
+    hideLoading();
+
+    // 最终渲染
+    if (planText) {
+      $('reportContent').innerHTML = marked.parse(planText);
+      $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+    }
+
+    // 滚动到报告区域
+    setTimeout(() => {
+      $('reportWrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+
+    showToast('✅ 综合优化方案已生成（基于 ' + selectedReports.length + ' 份报告）');
+
+  } catch (err) {
+    showError(err.message);
+    hideLoading();
+  } finally {
+    if (planLoadingBar) planLoadingBar.classList.remove('visible');
+  }
+}
+
 async function clearAllLocalReports() {
   if (!confirm('确定清空全部本地保存报告吗？此操作不可恢复。')) return;
   try {
@@ -967,6 +1370,8 @@ async function clearAllLocalReports() {
       tx.onabort = () => reject(tx.error || new Error('清空被中止'));
     });
     db.close();
+    selectedLocalReportIds.clear();
+    updateSelectedCount();
     await loadLocalReports();
     showToast('🧹 本地报告已清空');
   } catch (err) {
@@ -1016,6 +1421,8 @@ async function deleteLocalReportItem(id) {
       tx.onabort = () => reject(tx.error || new Error('删除被中止'));
     });
     db.close();
+    selectedLocalReportIds.delete(Number(id));
+    updateSelectedCount();
     await loadLocalReports();
     showToast('🗑 已删除本地报告');
   } catch (err) {
@@ -1028,33 +1435,14 @@ $('urlInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') startAnalyze();
 });
 
-const savedVision = localStorage.getItem('webinsight_enable_vision');
-if (savedVision !== null) $('visionEnabled').checked = savedVision === '1';
-
-const savedInteractionLevel = localStorage.getItem('webinsight_interaction_level');
-if (savedInteractionLevel) $('interactionLevel').value = savedInteractionLevel;
-
-const savedVisionMaxImages = localStorage.getItem('webinsight_vision_max_images');
-if (savedVisionMaxImages) $('visionMaxImages').value = savedVisionMaxImages;
-
-const savedClickWhitelist = localStorage.getItem('webinsight_click_whitelist');
-if (savedClickWhitelist !== null) $('clickWhitelist').checked = savedClickWhitelist === '1';
-
-function getAnalyzeOptions() {
-  const enableVision = !!$('visionEnabled').checked;
-  const interactionLevel = $('interactionLevel').value || 'standard';
-  const visionMaxImages = Math.max(1, Math.min(8, Number($('visionMaxImages').value || 3)));
-  const clickWhitelist = !!$('clickWhitelist').checked;
-  localStorage.setItem('webinsight_enable_vision', enableVision ? '1' : '0');
-  localStorage.setItem('webinsight_interaction_level', interactionLevel);
-  localStorage.setItem('webinsight_vision_max_images', String(visionMaxImages));
-  localStorage.setItem('webinsight_click_whitelist', clickWhitelist ? '1' : '0');
-  return {
-    enable_vision: enableVision,
-    interaction_level: interactionLevel,
-    vision_max_images: visionMaxImages,
-    click_whitelist: clickWhitelist,
-  };
+// 分析模式：流式 / 批量
+async function startAnalyze() {
+  const mode = ($('analyzeMode')?.value || 'stream');
+  if (mode === 'batch') {
+    return startAnalyzeBatch();
+  } else {
+    return startAnalyzeStream();
+  }
 }
 
 function getAdminHeaders() {
@@ -1078,10 +1466,9 @@ function getFriendlyApiError(status, detail) {
 async function startAnalyzeStream() {
   const url = $('urlInput').value.trim();
   const apiKey = $('apiKeyInput').value.trim();
-  const opts = getAnalyzeOptions();
 
   if (!url) { showError('请输入网站 URL'); $('urlInput').focus(); return; }
-  if (apiKey && !apiKey.startsWith('sk-')) { showError('API Key 格式不正确，应以 sk- 开头'); return; }
+  if (!isValidUrl(url)) { showError('URL 格式不正确，请输入以 http:// 或 https:// 开头的完整网址'); return; }
   hideError(); hideReport(); hideInfoGrid(); hideDebugPanel();
   showLoading('正在抓取网站数据...');
 
@@ -1095,15 +1482,7 @@ async function startAnalyzeStream() {
     const response = await fetch('/api/analyze/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        api_key: apiKey,
-        model: 'deepseek-chat',
-        enable_vision: opts.enable_vision,
-        interaction_level: opts.interaction_level,
-        vision_max_images: opts.vision_max_images,
-        click_whitelist: opts.click_whitelist,
-      })
+      body: JSON.stringify({ url, api_key: apiKey, model: 'deepseek-chat' })
     });
 
     if (!response.ok) {
@@ -1120,6 +1499,9 @@ async function startAnalyzeStream() {
     $('reportWrapper').classList.add('visible');
     $('reportContent').innerHTML = '';
 
+    const PROGRESS_STAGES = ['抓取中...', 'CSS 解析中...', 'DeepSeek AI 分析中...'];
+    let stageIdx = 0;
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -1131,34 +1513,67 @@ async function startAnalyzeStream() {
       for (const line of lines) {
         if (line.startsWith('event: done')) break;
         if (line.startsWith('event: error')) {
+          // 从 event:error 中提取安全错误消息
+          let errText = 'AI 分析服务暂时不可用';
           try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            throw new Error(data.error);
-          } catch(e) { if (e.message !== 'data: ') throw e; }
+            const prefixPos = line.indexOf('data: ');
+            if (prefixPos !== -1) {
+              const payload = JSON.parse(line.substring(prefixPos + 6));
+              if (payload.error) errText = payload.error;
+            }
+          } catch(_) {}
+          showError(errText);
+          hideLoading();
+          btn.disabled = false;
+          $('btnText').textContent = '重试分析';
+          $('btnSpinner').style.display = 'none';
+          return; // 不抛异常，保持 UI 在可恢复状态
         }
         if (line.startsWith('data: ') && line.indexOf('"content"') > -1) {
           try {
-            const data = JSON.parse(line.replace('data: ', ''));
-            reportText += data.content;
-            $('reportContent').innerHTML = marked.parse(reportText);
-            $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
-          } catch(e) {}
+            const prefixPos = line.indexOf('{');
+            if (prefixPos !== -1) {
+              const data = JSON.parse(line.substring(prefixPos));
+              reportText += data.content || '';
+              // 流式更新阅读区，50ms 节流避免频繁 reflow
+              if (!reportText._lastUpdate || Date.now() - reportText._lastUpdate > 50) {
+                $('reportContent').innerHTML = marked.parse(reportText);
+                $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+                reportText._lastUpdate = Date.now();
+              }
+            }
+          } catch(_) {}
         }
         if (line.startsWith('data: ') && line.indexOf('"title"') > -1) {
           try {
-            const meta = JSON.parse(line.replace('data: ', ''));
-            currentWebsiteData = meta;
-            renderInfoGrid(meta);
-            metaReceived = true;
-            updateLoadingText('DeepSeek AI 正在实时分析中...');
-            hideLoading();
-          } catch(e) {}
+            const prefixPos = line.indexOf('{');
+            if (prefixPos !== -1) {
+              const meta = JSON.parse(line.substring(prefixPos));
+              currentWebsiteData = meta;
+              renderInfoGrid(meta);
+              metaReceived = true;
+              updateLoadingText('🤖 DeepSeek AI 正在实时分析中...');
+              hideLoading();
+            }
+          } catch(_) {}
         }
+      }
+
+      // 渐进式进度提示
+      if (!metaReceived && stageIdx < PROGRESS_STAGES.length && reportText.length > stageIdx * 200) {
+        updateLoadingText(PROGRESS_STAGES[stageIdx]);
+        stageIdx++;
       }
     }
 
     currentReport = reportText;
     if (!metaReceived) hideLoading();
+
+    // 最终渲染确保完整（覆盖节流）
+    if (reportText) {
+      $('reportContent').innerHTML = marked.parse(reportText);
+      $('reportContent').querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+    }
 
   } catch (err) {
     showError(err.message);
@@ -1170,10 +1585,16 @@ async function startAnalyzeStream() {
   }
 }
 
-async function startAnalyze() {
+function isValidUrl(str) {
+  try {
+    const u = new URL(str);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch(_) { return false; }
+}
+
+async function startAnalyzeBatch() {
   const url = $('urlInput').value.trim();
   const apiKey = $('apiKeyInput').value.trim();
-  const opts = getAnalyzeOptions();
 
   // 校验
   if (!url) {
@@ -1181,8 +1602,8 @@ async function startAnalyze() {
     $('urlInput').focus();
     return;
   }
-  if (apiKey && !apiKey.startsWith('sk-')) {
-    showError('API Key 格式不正确，应以 sk- 开头');
+  if (!isValidUrl(url)) {
+    showError('URL 格式不正确，请输入以 http:// 或 https:// 开头的完整网址');
     return;
   }
 
@@ -1205,15 +1626,7 @@ async function startAnalyze() {
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: url,
-        api_key: apiKey,
-        model: 'deepseek-chat',
-        enable_vision: opts.enable_vision,
-        interaction_level: opts.interaction_level,
-        vision_max_images: opts.vision_max_images,
-        click_whitelist: opts.click_whitelist,
-      })
+      body: JSON.stringify({ url, api_key: apiKey, model: 'deepseek-chat' })
     });
 
     if (!response.ok) {
@@ -1298,31 +1711,17 @@ function hideInfoGrid() {
 async function startDebugAnalyze() {
   const url = $('urlInput').value.trim();
   const apiKey = $('apiKeyInput').value.trim();
-  const opts = getAnalyzeOptions();
 
-  if (!url) {
-    showError('请输入网站 URL');
-    $('urlInput').focus();
-    return;
-  }
+  if (!url) { showError('请输入网站 URL'); $('urlInput').focus(); return; }
 
-  hideError();
-  hideDebugPanel();
+  hideError(); hideDebugPanel();
   showLoading('正在拉取调试证据...');
 
   try {
     const response = await fetch('/api/analyze/debug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: url,
-        api_key: apiKey || 'debug-no-key',
-        model: 'deepseek-chat',
-        enable_vision: opts.enable_vision,
-        interaction_level: opts.interaction_level,
-        vision_max_images: opts.vision_max_images,
-        click_whitelist: opts.click_whitelist,
-      })
+      body: JSON.stringify({ url, api_key: apiKey || 'debug-no-key', model: 'deepseek-chat' })
     });
 
     if (!response.ok) {
@@ -1907,15 +2306,12 @@ function drawVisualRadar(canvasId, mappedScores) {
 // ============================================================
 //  报告渲染
 // ============================================================
+// marked 配置（仅初始化一次）
+marked.setOptions({ breaks: true, gfm: true });
+
 function renderReport(markdown) {
   const wrapper = $('reportWrapper');
   const content = $('reportContent');
-
-  // 配置 marked 以支持代码高亮
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
 
   // 使用 marked 渲染 Markdown
   content.innerHTML = marked.parse(markdown);
@@ -1927,10 +2323,10 @@ function renderReport(markdown) {
 
   // 表格响应式包裹
   content.querySelectorAll('table').forEach((table) => {
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'overflow-x: auto; -webkit-overflow-scrolling: touch;';
-    table.parentNode.insertBefore(wrapper, table);
-    wrapper.appendChild(table);
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'overflow-x: auto; -webkit-overflow-scrolling: touch;';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
   });
 
   // 优化链接在新窗口打开
@@ -2105,9 +2501,74 @@ async function deleteHistoryItem(id, btn) {
   }
 }
 
+// ============================================================
+//  缓存管理
+// ============================================================
+async function refreshCacheInfo() {
+  const info = $('cacheInfo');
+  info.textContent = '加载中...';
+  try {
+    const res = await fetch('/api/cache/info');
+    if (!res.ok) throw new Error('请求失败');
+    const data = await res.json();
+    if (data.size === 0) {
+      info.innerHTML = '<span style="color:var(--text-muted)">缓存为空</span>';
+    } else {
+      const urls = data.keys.slice(0, 8).map(u => escapeHtml(u)).join('<br>');
+      const more = data.keys.length > 8 ? `<br>... 还有 ${data.keys.length - 8} 条` : '';
+      info.innerHTML = `<span style="color:var(--accent-5)">缓存 ${data.size} 条</span><br><span style="font-size:0.72rem">${urls}${more}</span>`;
+    }
+  } catch(e) {
+    info.innerHTML = `<span style="color:#f87171">加载失败: ${e.message}</span>`;
+  }
+}
+
+async function clearServerCache() {
+  if (!confirm('确定清除服务端全部分析缓存吗？')) return;
+  try {
+    const res = await fetch('/api/cache/clear', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message || '缓存已清除');
+    refreshCacheInfo();
+  } catch(e) {
+    showToast('❌ 清除失败: ' + (e.message || e));
+  }
+}
+
 // 初始化本地保存报告搜索监听
 $('localReportKeyword')?.addEventListener('input', () => {
   loadLocalReports();
+});
+
+// API Key 本地持久化
+const API_KEY_STORAGE_KEY = 'webinsight-api-key';
+(function restoreApiKey() {
+  try {
+    const saved = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (saved && $('apiKeyInput')) {
+      $('apiKeyInput').value = saved;
+    }
+  } catch (_) {}
+})();
+$('apiKeyInput')?.addEventListener('change', () => {
+  try {
+    const val = $('apiKeyInput').value.trim();
+    if (val) {
+      localStorage.setItem(API_KEY_STORAGE_KEY, val);
+    } else {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+    }
+  } catch (_) {}
+});
+$('apiKeyInput')?.addEventListener('blur', () => {
+  try {
+    const val = $('apiKeyInput').value.trim();
+    if (val) {
+      localStorage.setItem(API_KEY_STORAGE_KEY, val);
+    } else {
+      localStorage.removeItem(API_KEY_STORAGE_KEY);
+    }
+  } catch (_) {}
 });
 
 document.addEventListener('keydown', (e) => {

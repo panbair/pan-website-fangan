@@ -15,6 +15,7 @@ from config import (
     logger,
 )
 from crawler.static import _extract_important_headers, fetch_website_requests
+from crawler.browser_pool import get_browser_pool
 from analyzer.animations import extract_page_modules_playwright
 from analyzer.tech_stack import detect_tech_stack
 
@@ -228,21 +229,20 @@ _STRUCTURED_DATA_JS = """() => {
 #  主抓取函数
 # ============================================================
 async def fetch_website_playwright(url: str) -> dict:
-    """使用 Playwright 抓取网站数据（支持动态渲染、截图、模块提取）"""
+    """使用 Playwright 抓取网站数据（v2.1: BrowserPool 复用浏览器）"""
     try:
         from playwright.async_api import async_playwright
     except ImportError:
         logger.warning("Playwright 未安装，回退到 requests 模式")
         return await fetch_website_requests(url)
 
-    async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=True)
-        context = await browser.new_context(
-            viewport={"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
-            user_agent=USER_AGENT,
-        )
-        page = await context.new_page()
+    pool = get_browser_pool()
+    handle = await pool.acquire()
+    if handle is None:
+        logger.warning("BrowserPool 无法启动浏览器，回退到 requests 模式")
+        return await fetch_website_requests(url)
 
+    async with handle as page:
         network_requests = []
         page.on("request", lambda req: network_requests.append({
             "url": req.url[:200],
@@ -407,5 +407,6 @@ async def fetch_website_playwright(url: str) -> dict:
                     anim_audit if not isinstance(anim_audit, Exception) else {}
                 ),
             }
-        finally:
-            await browser.close()
+        except Exception as e:
+            logger.error(f"Playwright 抓取异常: {e}")
+            return await fetch_website_requests(url)

@@ -1,5 +1,4 @@
 """动画分析模块 — 页面模块提取、CSS 动画参数解析"""
-from config import MODULE_MIN_WIDTH, MODULE_MIN_HEIGHT
 
 
 _MODULE_EXTRACTION_JS = """() => {
