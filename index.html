@@ -566,34 +566,6 @@ input::placeholder { color: var(--text-muted); }
 .footer a { color: var(--accent-3); text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
 
-.local-report-modal {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.local-report-modal.visible {
-  display: flex;
-}
-
-.local-report-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
-}
-
-.local-report-modal-content {
-  position: relative;
-  width: min(920px, calc(100vw - 28px));
-  max-height: min(80vh, 760px);
-  overflow: auto;
-  padding: 20px;
-}
-
 /* ============================================================
    提示卡片
    ============================================================ */
@@ -613,6 +585,32 @@ input::placeholder { color: var(--text-muted); }
 .tip-card .tip-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.66);
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-card {
+  width: min(960px, 95vw);
+  max-height: 86vh;
+  overflow: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+  padding: 18px;
 }
 
 /* 屏幕阅读器可见，视觉隐藏 */
@@ -663,7 +661,7 @@ input::placeholder { color: var(--text-muted); }
         <span id="btnText">开始分析</span>
         <span id="btnSpinner" style="display:none" class="spinner"></span>
       </button>
-      <button class="btn btn-secondary" onclick="openLocalReportPanel()" title="查看本地保存报告" style="padding:14px 16px">
+      <button class="btn btn-secondary" onclick="openLocalReportModal()" title="查看本地保存报告">
         🗂 报告列表
       </button>
     </div>
@@ -758,6 +756,23 @@ input::placeholder { color: var(--text-muted); }
     <div class="report-content" id="reportContent"></div>
   </div>
 
+  <div id="localReportModal" class="modal-overlay" aria-hidden="true" onclick="onLocalReportModalMaskClick(event)">
+    <div class="modal-card" id="localReportPanel" role="dialog" aria-modal="true" aria-labelledby="localReportTitle">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px">
+        <h3 id="localReportTitle" style="color:var(--text-secondary);font-size:0.95rem;margin:0">💾 本地保存报告（IndexedDB）</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="clearAllLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🧹 清空</button>
+          <button onclick="loadLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🔄 刷新</button>
+          <button onclick="closeLocalReportModal()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">✖ 关闭</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input id="localReportKeyword" type="text" placeholder="按域名/标题搜索本地报告" style="flex:1;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem" />
+      </div>
+      <div id="localReportList" style="font-size:0.82rem;color:var(--text-muted)">当前暂无本地保存报告</div>
+    </div>
+  </div>
+
   <div class="report-wrapper" id="debugWrapper" style="display:none">
     <div class="report-header">
       <h2>🧪 Debug 证据面板</h2>
@@ -786,25 +801,6 @@ input::placeholder { color: var(--text-muted); }
        &nbsp;·&nbsp; 分析结果仅供参考</p>
   </footer>
 </div>
-
-<div id="localReportModal" class="local-report-modal" aria-hidden="true">
-  <div class="local-report-modal-backdrop" onclick="closeLocalReportPanel()"></div>
-  <div class="local-report-modal-content card" role="dialog" aria-modal="true" aria-label="本地保存报告列表">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <h3 style="color:var(--text-secondary);font-size:0.95rem;margin:0">💾 本地保存报告（IndexedDB）</h3>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="clearAllLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🧹 清空</button>
-        <button onclick="loadLocalReports()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">🔄 刷新</button>
-        <button onclick="closeLocalReportPanel()" class="btn btn-secondary" style="font-size:0.75rem;padding:5px 12px">✖ 关闭</button>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input id="localReportKeyword" type="text" placeholder="按域名/标题搜索本地报告" style="flex:1;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem" />
-    </div>
-    <div id="localReportList" style="font-size:0.82rem;color:var(--text-muted)">当前暂无本地保存报告</div>
-  </div>
-</div>
-
 <!-- ============================================================
      JavaScript
      ============================================================ -->
@@ -841,29 +837,25 @@ function openLocalReportDb() {
   });
 }
 
-function toggleLocalReportPanel() {
+function openLocalReportModal() {
   const modal = $('localReportModal');
   if (!modal) return;
-  if (modal.classList.contains('visible')) {
-    closeLocalReportPanel();
-    return;
-  }
-  openLocalReportPanel();
-}
-
-function openLocalReportPanel() {
-  const modal = $('localReportModal');
-  if (!modal) return;
-  modal.classList.add('visible');
+  modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
   loadLocalReports();
 }
 
-function closeLocalReportPanel() {
+function closeLocalReportModal() {
   const modal = $('localReportModal');
   if (!modal) return;
-  modal.classList.remove('visible');
+  modal.classList.remove('show');
   modal.setAttribute('aria-hidden', 'true');
+}
+
+function onLocalReportModalMaskClick(event) {
+  if (event.target && event.target.id === 'localReportModal') {
+    closeLocalReportModal();
+  }
 }
 
 async function saveReportToLocal() {
@@ -895,7 +887,7 @@ async function saveReportToLocal() {
     });
     db.close();
     highlightedLocalReportId = savedId;
-    openLocalReportPanel();
+    openLocalReportModal();
     await loadLocalReports();
     showToast('💾 已保存到本地 IndexedDB');
   } catch (err) {
@@ -2120,7 +2112,7 @@ $('localReportKeyword')?.addEventListener('input', () => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    closeLocalReportPanel();
+    closeLocalReportModal();
   }
 });
 </script>
